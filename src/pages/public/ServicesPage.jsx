@@ -1,7 +1,8 @@
 import { Bell, Lightbulb, BarChart3, FolderOpen, ArrowRight, Sparkles } from 'lucide-react';
 import HeroCarousel from '../../components/common/HeroCarousel';
-
+import { useNavigate } from 'react-router-dom';
 const ServicesPage = () => {
+  const navigate = useNavigate();
   const services = [
     { 
       title: 'Alerts', 
@@ -144,7 +145,9 @@ const ServicesPage = () => {
             <p className="text-gray-600 mb-6 max-w-2xl">
               Our team can create tailored patent protection strategies to meet your specific needs
             </p>
-            <button className="group inline-flex items-center gap-3 bg-linear-to-r from-[#191970] to-[#4a5fa8] text-white px-8 py-3 rounded-xl font-semibold uppercase tracking-wide text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <button 
+             onClick={() => navigate('/contact')}
+             className="group inline-flex items-center gap-3 bg-linear-to-r from-[#191970] to-[#4a5fa8] text-white px-8 py-3 rounded-xl font-semibold uppercase tracking-wide text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
               <span>Contact Us</span>
               <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
             </button>

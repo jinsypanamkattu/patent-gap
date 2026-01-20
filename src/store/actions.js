@@ -1,0 +1,7 @@
+export const ACTIONS = {
+  LOGIN: 'LOGIN',
+  LOGOUT: 'LOGOUT',
+  REGISTER: 'REGISTER',
+  SET_PATENTS: 'SET_PATENTS',
+  SET_PAGE: 'SET_PAGE'
+};

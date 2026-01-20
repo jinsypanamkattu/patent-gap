@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@layer base {
+  h1 {
+    font-size: 2.25rem;    /* Tailwind text-4xl */
+    font-weight: 700;      /* Tailwind font-bold */
+    color: #191970;        /* Tailwind text-white */
+    line-height: 1.25;     /* approximate leading-tight */
+  }
+
+  /* Responsive example */
+  @media (min-width: 768px) { /* md breakpoint */
+    h1 {
+      font-size: 3rem;      /* Tailwind text-5xl */
+    }
+  }
+}

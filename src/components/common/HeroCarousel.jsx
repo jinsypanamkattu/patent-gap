@@ -1,152 +1,206 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
 const HeroCarousel = () => {
   const [current, setCurrent] = useState(0);
-  
+  const [particles, setParticles] = useState([]);
+
   const slides = [
     {
       title: 'Protect Your Innovation',
-      subtitle: 'Advanced Patent Protection Solutions',
-      description: 'Safeguard your intellectual property with cutting-edge patent analysis and monitoring.'
+      subtitle: 'with AI-Powered Patents',
+      description:
+        'Advanced machine learning technology to secure and manage your intellectual property',
     },
     {
       title: 'AI-Powered Patent Analysis',
       subtitle: 'Smart Technology for Patent Management',
-      description: 'Leverage artificial intelligence to streamline your patent portfolio management.'
+      description:
+        'Leverage artificial intelligence to streamline your patent portfolio management',
     },
     {
       title: 'Secure Your Intellectual Property',
-      subtitle: 'Comprehensive Patent Monitoring & Protection',
-      description: 'Stay ahead with real-time alerts and comprehensive IP protection strategies.'
-    }
+      subtitle: 'Comprehensive Patent Monitoring',
+      description:
+        'Stay ahead with real-time alerts and comprehensive IP protection strategies',
+    },
   ];
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % slides.length);
-    }, 6000);
+    setParticles(
+      Array.from({ length: 120 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 2 + 1,
+        duration: Math.random() * 4 + 3,
+      }))
+    );
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setCurrent((p) => (p + 1) % slides.length),
+      6000
+    );
     return () => clearInterval(timer);
   }, []);
 
-  const nextSlide = () => {
-    setCurrent((prev) => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrent((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
   return (
-    <div 
-      className="relative w-full h-125 overflow-hidden"
+    <div
+      className="relative w-full overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #051146 0%, #4f62a5 45%, #0a1b5c 100%)'
+        height: '600px',
+        background: '#051146',
       }}
     >
-      {/* Carousel Container */}
-      <div className="relative w-full h-full">
-        {slides.map((slide, index) => (
+      {/* PARTICLES */}
+      <div className="absolute inset-0 overflow-hidden">
+        {particles.map((p) => (
           <div
-            key={index}
-            className={`absolute top-0 left-0 w-full h-full flex items-center justify-center p-8 transition-opacity duration-1000 ease-in-out ${
-              index === current ? 'opacity-100' : 'opacity-0'
-            }`}
+            key={p.id}
+            className="absolute rounded-full"
             style={{
-              background: 'linear-gradient(135deg, #051146 0%, #0c1535 45%, #0a1b5c 100%)'
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              background: '#38bdf8',
+              animation: `twinkle ${p.duration}s ease-in-out infinite`,
+              opacity: 0.6,
             }}
-          >
-            {/* Slide Content */}
-            <div className="text-center max-w-200 px-8">
-              <h1 className="text-white text-5xl font-bold mb-4 leading-tight" 
-                  style={{ textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)' }}>
-                {slide.title}
-              </h1>
-              <p className="text-[#EDEADC] text-2xl font-semibold mb-4 opacity-95" 
-                 style={{ textShadow: '0 1px 5px rgba(0, 0, 0, 0.2)' }}>
-                {slide.subtitle}
-              </p>
-              <p className="text-[#E0E0E0] text-lg mb-8 leading-relaxed">
-                {slide.description}
-              </p>
-              
-              {/* Buttons */}
-              <div className="flex gap-4 justify-center items-center flex-wrap">
-                <button 
-                  className="relative bg-[#C9A94D] text-[#0A1F14] px-8 py-3.5 rounded-lg font-semibold uppercase tracking-wide text-sm border-none outline-none cursor-pointer overflow-hidden transition-all duration-300 hover:scale-105 hover:border-2 hover:border-white hover:bg-[#E6C968] active:scale-95"
+          />
+        ))}
+      </div>
+
+      {/* KEYFRAMES */}
+      <style>{`
+        @keyframes twinkle {
+          0%,100% { opacity:.3; }
+          50% { opacity:.9; }
+        }
+        @keyframes scan {
+          0% { top: -20%; }
+          100% { top: 120%; }
+        }
+        @keyframes floatCard {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-16px); }
+        }
+        @keyframes glow {
+          0%,100% { opacity:.3; }
+          50% { opacity:.6; }
+        }
+      `}</style>
+
+      {/* SLIDES */}
+      {slides.map((slide, index) => (
+        <div
+          key={index}
+          className={`absolute inset-0 transition-opacity duration-1000 ${
+            index === current ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-8 h-full flex items-center">
+            <div className="grid md:grid-cols-2 gap-12 w-full items-center">
+
+              {/* LEFT CONTENT */}
+              <div>
+                <h1 className="text-white text-6xl font-bold mb-4">
+                  {slide.title}
+                </h1>
+
+                <p
+                  className="text-4xl font-bold mb-6"
                   style={{
-                    backgroundImage: 'linear-gradient(180deg, #FFF8E2 0%, #C9A94D 38%, #B2923E 100%)',
-                    boxShadow: '0 4px 18px 2px rgba(25, 25, 112, 0.16), 0 2px 12px 2px rgba(201, 169, 77, 0.17), inset 0 0.5px 0.5px 0 rgba(255,255,220,0.19)',
-                    letterSpacing: '0.03em'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 6px 24px 3px rgba(255, 255, 255, 0.2), 0 3px 16px 3px rgba(201, 169, 77, 0.25)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 18px 2px rgba(25, 25, 112, 0.16), 0 2px 12px 2px rgba(201, 169, 77, 0.17), inset 0 0.5px 0.5px 0 rgba(255,255,220,0.19)';
+                    background:
+                      'linear-gradient(135deg, #38bdf8 0%, #22d3ee 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
                   }}
                 >
-                  {/* Gloss effect */}
-                  <span 
-                    className="absolute top-1 left-1 right-1 h-[36%] rounded-t-md pointer-events-none z-10"
+                  {slide.subtitle}
+                </p>
+
+                <p className="text-slate-300 text-lg max-w-xl">
+                  {slide.description}
+                </p>
+              </div>
+
+              {/* RIGHT ANIMATION – PATENT SCAN */}
+              <div className="relative hidden md:flex items-center justify-center h-90">
+
+                {/* Protection Grid */}
+                <div
+                  className="absolute inset-0 rounded-2xl border border-sky-400/20"
+                  style={{
+                    background:
+                      'linear-gradient(transparent 95%, rgba(56,189,248,.15) 100%), linear-gradient(90deg, transparent 95%, rgba(56,189,248,.15) 100%)',
+                    backgroundSize: '30px 30px',
+                    animation: 'glow 4s ease-in-out infinite',
+                  }}
+                />
+
+                {/* Scanning Beam */}
+                <div
+                  className="absolute left-0 right-0 h-24"
+                  style={{
+                    background:
+                      'linear-gradient(to bottom, transparent, rgba(56,189,248,.35), transparent)',
+                    animation: 'scan 3.5s linear infinite',
+                  }}
+                />
+
+                {/* Floating Patent Cards */}
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="absolute w-28 h-36 rounded-xl flex flex-col items-center justify-center"
                     style={{
-                      background: 'linear-gradient(110deg, rgba(255,255,255,0.35) 30%, rgba(255,255,255,0.09) 100%)',
-                      borderRadius: '6px 6px 50% 50% / 60% 60% 40% 40%',
-                      mixBlendMode: 'lighten'
+                      left: `${20 + i * 20}%`,
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(56,189,248,.3)',
+                      backdropFilter: 'blur(6px)',
+                      animation: `floatCard ${4 + i}s ease-in-out infinite`,
                     }}
-                  ></span>
-                  <span className="relative z-10">Get Started</span>
-                </button>
+                  >
+                    <FileText className="text-sky-400 mb-2" />
+                    <span className="text-xs text-sky-200">
+                      Patent #{i + 1}
+                    </span>
+                  </div>
+                ))}
+
               </div>
             </div>
           </div>
-        ))}
-      </div>
-      
-      {/* Navigation Buttons */}
+        </div>
+      ))}
+
+      {/* NAV */}
       <button
-        onClick={prevSlide}
-        className="absolute left-8 top-1/2 -translate-y-1/2 bg-white/20 text-white border-2 border-white/30 rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-all duration-300 z-10 hover:bg-white/40 hover:border-white/60 hover:scale-110"
-        style={{ backdropFilter: 'blur(10px)' }}
-        aria-label="Previous slide"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.2)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = 'none';
-        }}
+        onClick={() => setCurrent((p) => (p - 1 + slides.length) % slides.length)}
+        className="absolute left-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 text-white hover:scale-110"
       >
-        <ChevronLeft size={28} />
-      </button>
-      
-      <button
-        onClick={nextSlide}
-        className="absolute right-8 top-1/2 -translate-y-1/2 bg-white/20 text-white border-2 border-white/30 rounded-full w-12 h-12 flex items-center justify-center cursor-pointer transition-all duration-300 z-10 hover:bg-white/40 hover:border-white/60 hover:scale-110"
-        style={{ backdropFilter: 'blur(10px)' }}
-        aria-label="Next slide"
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.2)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        <ChevronRight size={28} />
+        <ChevronLeft />
       </button>
 
-      {/* Carousel Dots */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-10">
-        {slides.map((_, index) => (
+      <button
+        onClick={() => setCurrent((p) => (p + 1) % slides.length)}
+        className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 text-white hover:scale-110"
+      >
+        <ChevronRight />
+      </button>
+
+      {/* DOTS */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3">
+        {slides.map((_, i) => (
           <button
-            key={index}
-            onClick={() => setCurrent(index)}
-            className={`w-3 h-3 rounded-full border-none cursor-pointer p-0 transition-all duration-300 ${
-              index === current 
-                ? 'bg-[#C9A94D] scale-[1.3]' 
-                : 'bg-white/40 hover:bg-white/60 hover:scale-110'
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`w-3 h-3 rounded-full ${
+              i === current ? 'bg-sky-400 scale-125' : 'bg-white/40'
             }`}
-            style={index === current ? { boxShadow: '0 0 8px rgba(201, 169, 77, 0.6)' } : {}}
-            aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>

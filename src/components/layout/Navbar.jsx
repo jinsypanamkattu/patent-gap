@@ -87,7 +87,7 @@ const Navbar = () => {
               animation: 'gradientFlow 4s linear infinite',
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-shimmer"></div>
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white to-transparent opacity-40 animate-shimmer"></div>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ const Navbar = () => {
                   
                   {/* Animated shine effect */}
                   <div 
-                    className={`absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ${
+                    className={`absolute inset-0 bg-linear-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ${
                       isActive(item.path) ? 'opacity-30' : 'opacity-0 group-hover:opacity-30'
                     }`}
                   ></div>
@@ -229,7 +229,7 @@ const Navbar = () => {
                   >
                     <User className="h-5 w-5 mr-2 text-white group-hover:rotate-12 transition-transform duration-300" />
                     <span className="text-white">Profile</span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 opacity-20"></div>
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 opacity-20"></div>
                   </button>
 
                   <button 
@@ -242,7 +242,7 @@ const Navbar = () => {
                   >
                     <LogOut className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform duration-300" />
                     Logout
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 opacity-20"></div>
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 opacity-20"></div>
                   </button>
                 </>
               ) : (
@@ -255,7 +255,7 @@ const Navbar = () => {
                   }}
                 >
                   <span className="relative z-10 text-white">Login</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 opacity-30"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 opacity-30"></div>
                 </button>
               )}
             </div>
@@ -411,7 +411,7 @@ const Navbar = () => {
                   
                   {/* Shine effect */}
                   <div 
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+                    className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-400/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
                   />
 
                   <div className="relative flex items-center justify-between">
@@ -553,7 +553,7 @@ const Navbar = () => {
                     boxShadow: '0 0 40px rgba(16, 185, 129, 0.5), inset 0 0 30px rgba(255, 255, 255, 0.1)',
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 opacity-20"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 opacity-20"></div>
                   <div className="relative flex items-center justify-center">
                     <span className="text-2xl font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
                       Login
@@ -570,9 +570,9 @@ const Navbar = () => {
           }`}
             style={{ transitionDelay: isOpen ? '600ms' : '0ms' }}
           >
-            <div className="w-12 h-0.5 bg-gradient-to-r from-transparent to-emerald-400 rounded-full"></div>
+            <div className="w-12 h-0.5 bg-linear-to-r from-transparent to-emerald-400 rounded-full"></div>
             <Shield className="w-6 h-6 text-emerald-400" style={{ filter: 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.8))' }} />
-            <div className="w-12 h-0.5 bg-gradient-to-l from-transparent to-emerald-400 rounded-full"></div>
+            <div className="w-12 h-0.5 bg-linear-to-l from-transparent to-emerald-400 rounded-full"></div>
           </div>
         </div>
       </div>

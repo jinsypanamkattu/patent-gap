@@ -18,7 +18,7 @@ import PatentDetail from './pages/dashboard/PatentDetailPage';
 
 const App = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="grow">
         <Routes>

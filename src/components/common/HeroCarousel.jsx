@@ -198,8 +198,8 @@ const HeroCarousel = () => {
         ))}
       </svg>
 
-      {/* PATENT-THEMED FLOATING ICONS */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* PATENT-THEMED FLOATING ICONS - Hidden on mobile */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         {[
           { Icon: FileText, x: 8, y: 15, duration: 22, size: 68 },
           { Icon: Shield, x: 85, y: 20, duration: 25, size: 64 },
@@ -258,8 +258,8 @@ const HeroCarousel = () => {
         ))}
       </div>
 
-      {/* ENHANCED SCANNING BEAMS */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-15">
+      {/* ENHANCED SCANNING BEAMS - Hidden on mobile */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-15 hidden md:block">
         {[...Array(4)].map((_, i) => (
           <div
             key={i}
@@ -275,25 +275,31 @@ const HeroCarousel = () => {
         ))}
       </div>
 
-      {/* ENHANCED GLOWING ORBS */}
+      {/* ENHANCED GLOWING ORBS - Responsive sizing */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute w-125 h-125 rounded-full blur-3xl"
+          className="absolute rounded-full blur-3xl"
           style={{
+            width: 'min(500px, 40vw)',
+            height: 'min(500px, 40vw)',
             background: 'radial-gradient(circle, rgba(16,185,129,0.3), transparent 70%)',
             animation: 'orbFloat1 20s ease-in-out infinite',
           }}
         />
         <div
-          className="absolute w-112.5 h-112.5 rounded-full blur-3xl"
+          className="absolute rounded-full blur-3xl"
           style={{
+            width: 'min(450px, 35vw)',
+            height: 'min(450px, 35vw)',
             background: 'radial-gradient(circle, rgba(52,211,153,0.25), transparent 70%)',
             animation: 'orbFloat2 24s ease-in-out infinite',
           }}
         />
         <div
-          className="absolute w-100 h-100 rounded-full blur-3xl"
+          className="absolute rounded-full blur-3xl"
           style={{
+            width: 'min(400px, 30vw)',
+            height: 'min(400px, 30vw)',
             background: 'radial-gradient(circle, rgba(110,231,183,0.2), transparent 70%)',
             animation: 'orbFloat3 28s ease-in-out infinite',
           }}
@@ -382,11 +388,11 @@ const HeroCarousel = () => {
             top: 5%; left: -15%;
           }
           33% { 
-            transform: translate(400px, 200px) scale(1.3);
+            transform: translate(min(400px, 25vw), min(200px, 15vh)) scale(1.3);
             top: 35%; left: 45%;
           }
           66% { 
-            transform: translate(-150px, 280px) scale(0.9);
+            transform: translate(min(-150px, -10vw), min(280px, 20vh)) scale(0.9);
             top: 65%; left: 8%;
           }
         }
@@ -397,7 +403,7 @@ const HeroCarousel = () => {
             top: 15%; right: -15%;
           }
           50% { 
-            transform: translate(-350px, 250px) scale(1.2);
+            transform: translate(min(-350px, -20vw), min(250px, 18vh)) scale(1.2);
             top: 55%; right: 35%;
           }
         }
@@ -408,7 +414,7 @@ const HeroCarousel = () => {
             bottom: 10%; left: 50%;
           }
           50% { 
-            transform: translate(200px, -200px) scale(1.15);
+            transform: translate(min(200px, 15vw), min(-200px, -15vh)) scale(1.15);
             bottom: 45%; left: 20%;
           }
         }
@@ -501,6 +507,17 @@ const HeroCarousel = () => {
           0% { transform: rotateY(0deg); }
           100% { transform: rotateY(360deg); }
         }
+
+        @keyframes dataFlow {
+          0%, 100% { 
+            height: 0;
+            opacity: 0;
+          }
+          50% { 
+            height: 4rem;
+            opacity: 1;
+          }
+        }
       `}</style>
 
       {/* SLIDES */}
@@ -511,25 +528,25 @@ const HeroCarousel = () => {
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <div className="max-w-450 mx-auto px-12 h-full flex items-center relative z-10">
-            <div className="grid lg:grid-cols-2 gap-24 w-full items-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 h-full flex items-center relative z-10 py-12 md:py-16 lg:py-20">
+            <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 xl:gap-24 w-full items-center">
 
               {/* LEFT CONTENT */}
               <div style={{ animation: index === current ? 'slideIn 1s ease-out' : 'none' }}>
                 {/* Icon Badge */}
-                <div className="mb-10 inline-flex items-center gap-4 px-8 py-4 rounded-full bg-black/30 backdrop-blur-xl border-2 border-emerald-400/50"
+                <div className="mb-6 md:mb-8 lg:mb-10 inline-flex items-center gap-2 md:gap-3 lg:gap-4 px-4 md:px-6 lg:px-8 py-2 md:py-3 lg:py-4 rounded-full bg-black/30 backdrop-blur-xl border-2 border-emerald-400/50"
                      style={{ boxShadow: '0 0 40px rgba(16,185,129,0.5), inset 0 0 20px rgba(16,185,129,0.1)' }}>
-                  <slide.icon className="w-8 h-8 text-emerald-400" style={{ filter: 'drop-shadow(0 0 12px rgba(16,185,129,1))', animation: 'patentPulse 3s ease-in-out infinite' }} />
-                  <span className="text-emerald-300 text-lg font-bold tracking-wide">AI-POWERED PROTECTION</span>
+                  <slide.icon className="w-5 h-5 md:w-6 md:h-6 lg:w-8 lg:h-8 text-emerald-400" style={{ filter: 'drop-shadow(0 0 12px rgba(16,185,129,1))', animation: 'patentPulse 3s ease-in-out infinite' }} />
+                  <span className="text-emerald-300 text-xs md:text-sm lg:text-base xl:text-lg font-bold tracking-wide">AI-POWERED PROTECTION</span>
                 </div>
 
-                <h1 className="text-white text-7xl md:text-8xl font-bold mb-8 leading-tight"
+                <h1 className="text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold mb-4 md:mb-6 lg:mb-8 leading-tight"
                     style={{ textShadow: '0 0 50px rgba(16,185,129,0.4)' }}>
                   {slide.title}
                 </h1>
 
                 <p
-                  className="text-5xl md:text-7xl font-bold mb-10 leading-tight"
+                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold mb-6 md:mb-8 lg:mb-10 leading-tight"
                   style={{
                     background: `linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%)`,
                     WebkitBackgroundClip: 'text',
@@ -540,18 +557,18 @@ const HeroCarousel = () => {
                   {slide.subtitle}
                 </p>
 
-                <p className="text-slate-300 text-2xl max-w-2xl leading-relaxed mb-12"
+                <p className="text-slate-300 text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl max-w-2xl leading-relaxed mb-8 md:mb-10 lg:mb-12"
                    style={{ textShadow: '0 2px 15px rgba(0,0,0,0.7)' }}>
                   {slide.description}
                 </p>
 
                 {/* CTA Buttons */}
-                <div className="flex gap-6">
-                  <button className="px-10 py-5 rounded-full font-bold text-lg text-black bg-linear-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 transition-all duration-300 shadow-lg transform hover:scale-105"
+                <div className="flex flex-col sm:flex-row gap-3 md:gap-4 lg:gap-6">
+                  <button className="px-6 md:px-8 lg:px-10 py-3 md:py-4 lg:py-5 rounded-full font-bold text-sm md:text-base lg:text-lg text-black bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 transition-all duration-300 shadow-lg transform hover:scale-105"
                           style={{ boxShadow: '0 0 30px rgba(16,185,129,0.6)' }}>
                     Get Started
                   </button>
-                  <button className="px-10 py-5 rounded-full font-bold text-lg text-emerald-400 border-2 border-emerald-400 hover:bg-emerald-400/10 transition-all duration-300 transform hover:scale-105"
+                  <button className="px-6 md:px-8 lg:px-10 py-3 md:py-4 lg:py-5 rounded-full font-bold text-sm md:text-base lg:text-lg text-emerald-400 border-2 border-emerald-400 hover:bg-emerald-400/10 transition-all duration-300 transform hover:scale-105"
                           style={{ boxShadow: '0 0 20px rgba(16,185,129,0.3)' }}>
                     Learn More
                   </button>
@@ -559,7 +576,7 @@ const HeroCarousel = () => {
               </div>
 
               {/* RIGHT ANIMATION – PATENT DOCUMENT NETWORK */}
-              <div className="relative hidden lg:flex items-center justify-center h-150" style={{ perspective: '1500px' }}>
+              <div className="relative hidden lg:flex items-center justify-center" style={{ height: 'min(700px, 70vh)', perspective: '2000px' }}>
 
                 {/* Holographic Display Frame */}
                 <div
@@ -583,8 +600,8 @@ const HeroCarousel = () => {
                     key={i}
                     className="absolute rounded-full border-2 border-emerald-400"
                     style={{
-                      width: '120px',
-                      height: '120px',
+                      width: '160px',
+                      height: '160px',
                       left: `${15 + i * 20}%`,
                       top: `${25 + (i % 2) * 35}%`,
                       opacity: 0.2,
@@ -597,7 +614,7 @@ const HeroCarousel = () => {
                 {/* Central Patent Document Network Globe */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="relative" style={{ animation: 'globeRotate 40s linear infinite', transformStyle: 'preserve-3d' }}>
-                    <Globe size={200} className="text-emerald-400" 
+                    <Globe size={280} className="text-emerald-400" 
                            style={{ 
                              filter: 'drop-shadow(0 0 50px rgba(16,185,129,1))',
                              opacity: 0.25
@@ -623,7 +640,7 @@ const HeroCarousel = () => {
                       animationDelay: `${i * 0.6}s`,
                     }}
                   >
-                    <item.Icon size={50} className="text-emerald-400" 
+                    <item.Icon size={70} className="text-emerald-400" 
                                style={{ filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.6))' }}/>
                   </div>
                 ))}
@@ -646,19 +663,21 @@ const HeroCarousel = () => {
                 {/* PATENT-FOCUSED FLOATING CARDS */}
                 <div className="relative w-full h-full flex items-center justify-center" style={{ transformStyle: 'preserve-3d' }}>
                   {[
-                    { Icon: FileText, label: 'Patent Docs', pos: { x: -130, y: -70, z: 0 }, delay: 0 },
-                    { Icon: Eye, label: 'Monitor', pos: { x: 0, y: -95, z: 70 }, delay: 0.5 },
-                    { Icon: Shield, label: 'Protect', pos: { x: 130, y: -70, z: 30 }, delay: 1 },
-                    { Icon: Search, label: 'Analyze', pos: { x: -110, y: 70, z: 50 }, delay: 1.5 },
-                    { Icon: AlertCircle, label: 'Detect', pos: { x: 110, y: 70, z: 40 }, delay: 2 },
-                    { Icon: CheckCircle, label: 'Verify', pos: { x: 0, y: 95, z: 20 }, delay: 2.5 },
+                    { Icon: FileText, label: 'Patent Docs', pos: { x: -160, y: -90, z: 0 }, delay: 0 },
+                    { Icon: Eye, label: 'Monitor', pos: { x: 0, y: -120, z: 80 }, delay: 0.5 },
+                    { Icon: Shield, label: 'Protect', pos: { x: 160, y: -90, z: 40 }, delay: 1 },
+                    { Icon: Search, label: 'Analyze', pos: { x: -140, y: 90, z: 60 }, delay: 1.5 },
+                    { Icon: AlertCircle, label: 'Detect', pos: { x: 140, y: 90, z: 50 }, delay: 2 },
+                    { Icon: CheckCircle, label: 'Verify', pos: { x: 0, y: 120, z: 30 }, delay: 2.5 },
                   ].map((item, i) => (
                     <div
                       key={i}
-                      className="absolute w-40 h-48 rounded-2xl flex flex-col items-center justify-center gap-5"
+                      className="absolute rounded-2xl flex flex-col items-center justify-center gap-3 lg:gap-4 xl:gap-5"
                       style={{
                         left: '50%',
                         top: '50%',
+                        width: 'clamp(150px, 12vw, 200px)',
+                        height: 'clamp(180px, 15vw, 240px)',
                         marginLeft: `${item.pos.x}px`,
                         marginTop: `${item.pos.y}px`,
                         background: 'linear-gradient(135deg, rgba(1, 26, 20, 0.95), rgba(0, 61, 46, 0.9))',
@@ -675,10 +694,10 @@ const HeroCarousel = () => {
                         transformStyle: 'preserve-3d',
                       }}
                     >
-                      <item.Icon className="text-emerald-400 w-14 h-14" strokeWidth={1.5} 
+                      <item.Icon className="text-emerald-400 w-12 h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16" strokeWidth={1.5} 
                                  style={{ filter: 'drop-shadow(0 0 15px rgba(16,185,129,1))' }}/>
-                      <span className="text-base text-emerald-300 font-bold">{item.label}</span>
-                      <div className="w-20 h-2 rounded-full bg-linear-to-r from-emerald-500 via-green-500 to-teal-500"
+                      <span className="text-sm lg:text-base xl:text-lg text-emerald-300 font-bold">{item.label}</span>
+                      <div className="w-16 lg:w-20 xl:w-24 h-2 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500"
                            style={{ boxShadow: '0 0 20px rgba(16,185,129,1)' }}/>
                     </div>
                   ))}
@@ -702,7 +721,7 @@ const HeroCarousel = () => {
                 ].map((stamp, i) => (
                   <div
                     key={i}
-                    className="absolute px-4 py-2 text-xs font-bold border-2 rounded-lg"
+                    className="absolute px-2 lg:px-3 xl:px-4 py-1 lg:py-1.5 xl:py-2 text-xs font-bold border-2 rounded-lg"
                     style={{ 
                       left: `${stamp.x}%`,
                       top: `${stamp.y}%`,
@@ -722,16 +741,16 @@ const HeroCarousel = () => {
                 ))}
 
                 {/* Real-time Status Indicators */}
-                <div className="absolute top-6 right-6 flex flex-col gap-3">
+                <div className="absolute top-4 lg:top-5 xl:top-6 right-4 lg:right-5 xl:right-6 flex flex-col gap-2 lg:gap-2.5 xl:gap-3">
                   {[
                     { label: 'Monitoring', color: '#10b981' },
                     { label: 'Analyzing', color: '#34d399' },
                     { label: 'Protected', color: '#6ee7b7' }
                   ].map((status, i) => (
-                    <div key={i} className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border-2 border-emerald-400/50"
+                    <div key={i} className="flex items-center gap-2 lg:gap-2.5 xl:gap-3 px-3 lg:px-4 xl:px-5 py-1.5 lg:py-2 xl:py-2.5 rounded-full bg-black/60 backdrop-blur-xl border-2 border-emerald-400/50"
                          style={{ boxShadow: '0 0 30px rgba(16,185,129,0.4)' }}>
                       <div 
-                        className="w-3 h-3 rounded-full"
+                        className="w-2 h-2 lg:w-2.5 lg:h-2.5 xl:w-3 xl:h-3 rounded-full"
                         style={{ 
                           background: status.color,
                           animation: 'nodePulse 3s ease-in-out infinite',
@@ -739,7 +758,7 @@ const HeroCarousel = () => {
                           boxShadow: `0 0 15px ${status.color}`,
                         }} 
                       />
-                      <span className="text-sm text-emerald-300 font-bold">{status.label}</span>
+                      <span className="text-xs lg:text-xs xl:text-sm text-emerald-300 font-bold">{status.label}</span>
                     </div>
                   ))}
                 </div>
@@ -748,10 +767,11 @@ const HeroCarousel = () => {
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
-                    className="absolute w-2 h-16 rounded-full"
+                    className="absolute w-1.5 lg:w-1.5 xl:w-2 rounded-full"
                     style={{
                       left: `${15 + i * 12}%`,
                       bottom: '10%',
+                      height: '0',
                       background: 'linear-gradient(to top, rgba(16,185,129,0), rgba(16,185,129,0.8))',
                       animation: `dataFlow ${2 + i * 0.3}s ease-in-out infinite`,
                       animationDelay: `${i * 0.2}s`,
@@ -766,14 +786,14 @@ const HeroCarousel = () => {
       ))}
 
       {/* ENHANCED DOTS INDICATOR */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-4 z-20">
+      <div className="absolute bottom-6 md:bottom-8 lg:bottom-10 left-1/2 -translate-x-1/2 flex gap-2 md:gap-3 lg:gap-4 z-20">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
             className={`relative transition-all ${
-              i === current ? 'w-16' : 'w-4'
-            } h-4 rounded-full overflow-hidden cursor-pointer`}
+              i === current ? 'w-10 md:w-12 lg:w-16' : 'w-3 md:w-3.5 lg:w-4'
+            } h-3 md:h-3.5 lg:h-4 rounded-full overflow-hidden cursor-pointer`}
             style={{
               background: i === current 
                 ? 'linear-gradient(90deg, #10b981, #34d399, #6ee7b7)' 

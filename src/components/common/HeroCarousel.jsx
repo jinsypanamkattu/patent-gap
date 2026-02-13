@@ -278,21 +278,21 @@ const HeroCarousel = () => {
       {/* ENHANCED GLOWING ORBS */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute w-[500px] h-[500px] rounded-full blur-3xl"
+          className="absolute w-125 h-125 rounded-full blur-3xl"
           style={{
             background: 'radial-gradient(circle, rgba(16,185,129,0.3), transparent 70%)',
             animation: 'orbFloat1 20s ease-in-out infinite',
           }}
         />
         <div
-          className="absolute w-[450px] h-[450px] rounded-full blur-3xl"
+          className="absolute w-112.5 h-112.5 rounded-full blur-3xl"
           style={{
             background: 'radial-gradient(circle, rgba(52,211,153,0.25), transparent 70%)',
             animation: 'orbFloat2 24s ease-in-out infinite',
           }}
         />
         <div
-          className="absolute w-[400px] h-[400px] rounded-full blur-3xl"
+          className="absolute w-100 h-100 rounded-full blur-3xl"
           style={{
             background: 'radial-gradient(circle, rgba(110,231,183,0.2), transparent 70%)',
             animation: 'orbFloat3 28s ease-in-out infinite',
@@ -511,7 +511,7 @@ const HeroCarousel = () => {
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <div className="max-w-[1800px] mx-auto px-12 h-full flex items-center relative z-10">
+          <div className="max-w-450 mx-auto px-12 h-full flex items-center relative z-10">
             <div className="grid lg:grid-cols-2 gap-24 w-full items-center">
 
               {/* LEFT CONTENT */}
@@ -547,7 +547,7 @@ const HeroCarousel = () => {
 
                 {/* CTA Buttons */}
                 <div className="flex gap-6">
-                  <button className="px-10 py-5 rounded-full font-bold text-lg text-black bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 transition-all duration-300 shadow-lg transform hover:scale-105"
+                  <button className="px-10 py-5 rounded-full font-bold text-lg text-black bg-linear-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 transition-all duration-300 shadow-lg transform hover:scale-105"
                           style={{ boxShadow: '0 0 30px rgba(16,185,129,0.6)' }}>
                     Get Started
                   </button>
@@ -559,7 +559,7 @@ const HeroCarousel = () => {
               </div>
 
               {/* RIGHT ANIMATION – PATENT DOCUMENT NETWORK */}
-              <div className="relative hidden lg:flex items-center justify-center h-[600px]" style={{ perspective: '1500px' }}>
+              <div className="relative hidden lg:flex items-center justify-center h-150" style={{ perspective: '1500px' }}>
 
                 {/* Holographic Display Frame */}
                 <div
@@ -678,7 +678,7 @@ const HeroCarousel = () => {
                       <item.Icon className="text-emerald-400 w-14 h-14" strokeWidth={1.5} 
                                  style={{ filter: 'drop-shadow(0 0 15px rgba(16,185,129,1))' }}/>
                       <span className="text-base text-emerald-300 font-bold">{item.label}</span>
-                      <div className="w-20 h-2 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500"
+                      <div className="w-20 h-2 rounded-full bg-linear-to-r from-emerald-500 via-green-500 to-teal-500"
                            style={{ boxShadow: '0 0 20px rgba(16,185,129,1)' }}/>
                     </div>
                   ))}

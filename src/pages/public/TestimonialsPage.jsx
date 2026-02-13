@@ -118,7 +118,7 @@ const TestimonialCard = ({ testimonial, isActive, onClick }) => {
 
       {/* Scan line sweep on hover */}
       <div
-        className="absolute left-0 right-0 h-[2px] pointer-events-none z-20"
+        className="absolute left-0 right-0 h-0.5 pointer-events-none z-20"
         style={{
           top: `${scanPos}%`,
           background: `linear-gradient(90deg, transparent, ${testimonial.color}cc, transparent)`,
@@ -130,7 +130,7 @@ const TestimonialCard = ({ testimonial, isActive, onClick }) => {
 
       {/* Top accent line */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] z-10"
+        className="absolute top-0 left-0 right-0 h-0.5 z-10"
         style={{
           background: isActive || hovered
             ? `linear-gradient(90deg, transparent, ${testimonial.color}, transparent)`
@@ -288,14 +288,14 @@ const TestimonialsSection = () => {
     <section className="relative w-full overflow-hidden pt-12 pb-20 md:pt-16 md:pb-28">
 
 
-      <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 lg:px-20">
+      <div className="relative max-w-350 mx-auto px-6 md:px-12 lg:px-20">
 
         {/* Header */}
         <div className="text-center mb-14">
           
           <h2 className="text-5xl md:text-6xl font-black text-white leading-tight mb-4">
             Trusted by{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 via-emerald-300 to-emerald-500">
               Innovators
             </span>{" "}
             Worldwide
@@ -329,7 +329,7 @@ const TestimonialsSection = () => {
             }}
           >
             {/* Top accent */}
-            <div className="absolute top-0 left-0 right-0 h-[2px]"
+            <div className="absolute top-0 left-0 right-0 h-0.5"
               style={{ background: `linear-gradient(90deg, transparent, ${active.color}, transparent)` }} />
 
             {/* Animated corner brackets on hover */}
@@ -422,7 +422,7 @@ const TestimonialsSection = () => {
                   }}>
                   {active.stat}
                 </div>
-                <div className="text-sm text-gray-400 font-semibold max-w-[120px]">{active.statLabel}</div>
+                <div className="text-sm text-gray-400 font-semibold max-w-30">{active.statLabel}</div>
               </div>
             </div>
 

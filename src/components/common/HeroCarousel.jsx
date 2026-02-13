@@ -76,7 +76,7 @@ const HeroCarousel = () => {
 
   return (
     <div
-      className="relative w-full overflow-hidden"
+      className="relative w-full"
       style={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #001a14 0%, #002920 25%, #003d2e 50%, #002920 75%, #001a14 100%)',
@@ -511,8 +511,9 @@ const HeroCarousel = () => {
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <div className="max-w-450 mx-auto px-12 h-full flex items-center relative z-10">
-            <div className="grid lg:grid-cols-2 gap-24 w-full items-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center relative z-10">
+
+            <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 w-full items-center">
 
               {/* LEFT CONTENT */}
               <div style={{ animation: index === current ? 'slideIn 1s ease-out' : 'none' }}>

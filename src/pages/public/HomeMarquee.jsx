@@ -138,7 +138,7 @@ const NextGenMarquee = () => {
       {/* Main marquee container */}
       <div className="relative py-16 overflow-hidden">
         {/* Animated gradient borders - Green theme */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.75 overflow-hidden">
           <div 
             style={{
               background: 'linear-gradient(90deg, transparent 0%, #10b981 25%, #34d399 50%, #6ee7b7 75%, transparent 100%)',
@@ -147,7 +147,7 @@ const NextGenMarquee = () => {
             }}
           ></div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] overflow-hidden">
+        <div className="absolute bottom-0 left-0 right-0 h-0.75 overflow-hidden">
           <div 
             style={{
               background: 'linear-gradient(90deg, transparent 0%, #6ee7b7 25%, #34d399 50%, #10b981 75%, transparent 100%)',
@@ -358,7 +358,7 @@ const NextGenMarquee = () => {
                     }}
                   >
                     {/* Shimmer overlay */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/0 via-white/30 to-white/0 opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 rounded-full bg-linear-to-tr from-white/0 via-white/30 to-white/0 opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
                     {/* Icon */}
                     <Icon 

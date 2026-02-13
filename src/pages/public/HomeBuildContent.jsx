@@ -58,13 +58,13 @@ const HomeBuildContent = () => {
       {/* Animated mesh gradient background */}
       <div className="absolute inset-0 opacity-20">
         <div 
-          className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-radial from-emerald-500/30 via-emerald-500/10 to-transparent blur-3xl"
+          className="absolute top-0 left-0 w-200 h-200 bg-gradient-radial from-emerald-500/30 via-emerald-500/10 to-transparent blur-3xl"
           style={{
             transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
           }}
         />
         <div 
-          className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-radial from-emerald-400/20 via-emerald-600/10 to-transparent blur-3xl"
+          className="absolute bottom-0 right-0 w-150 h-150 bg-gradient-radial from-emerald-400/20 via-emerald-600/10 to-transparent blur-3xl"
           style={{
             transform: `translate(${-mousePosition.x}px, ${-mousePosition.y}px)`
           }}
@@ -78,15 +78,15 @@ const HomeBuildContent = () => {
         <div className="absolute bottom-32 left-[20%] w-24 h-24 border border-emerald-500/20 rounded-full animate-float-slow" style={{ animationDelay: '1s' }} />
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 md:px-12 lg:px-20 pt-20 pb-10 relative">
+      <div className="max-w-400 mx-auto px-6 md:px-12 lg:px-20 pt-20 pb-10 relative">
         <div className="space-y-6">
           {/* Heading - Full Width Above Everything */}
           <div className="text-center space-y-6 pb-0">
             <h2 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight whitespace-nowrap">
               <span className="text-white">Built with </span>
               <span className="relative inline-block">
-                <span className="absolute -inset-2 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-500 opacity-30 blur-2xl" />
-                <span className="relative bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">
+                <span className="absolute -inset-2 bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 opacity-30 blur-2xl" />
+                <span className="relative bg-linear-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">
                   AI at the Core
                 </span>
               </span>
@@ -124,10 +124,10 @@ const HomeBuildContent = () => {
                       {/* Card */}
                       <div className="relative bg-gray-900/70 backdrop-blur-xl border-2 border-gray-800 hover:border-emerald-500/40 rounded-2xl p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:-translate-y-1 cursor-pointer overflow-hidden">
                         {/* Animated gradient border effect */}
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+                        <div className="absolute inset-0 rounded-2xl bg-linear-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
                         
                         {/* Shimmer sweep */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-400/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
                         <div className="flex items-start gap-5 relative z-10">
                           {/* Icon with stat badge */}
@@ -163,7 +163,7 @@ const HomeBuildContent = () => {
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-lg text-white mb-2 transition-all duration-300 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-emerald-400 group-hover:to-emerald-300 group-hover:bg-clip-text">
+                            <h3 className="font-bold text-lg text-white mb-2 transition-all duration-300 group-hover:text-transparent group-hover:bg-linear-to-r group-hover:from-emerald-400 group-hover:to-emerald-300 group-hover:bg-clip-text">
                               {feature.title}
                             </h3>
                             <p className="text-sm text-gray-400 leading-relaxed">
@@ -191,7 +191,7 @@ const HomeBuildContent = () => {
                     background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                   <span className="relative flex items-center gap-2">
                     Learn How It Works
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -215,11 +215,11 @@ const HomeBuildContent = () => {
             <div className="lg:col-span-3 relative flex items-center justify-center">
               {/* Massive glowing orb background */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-[800px] h-[800px] bg-gradient-radial from-emerald-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl animate-pulse-slow" />
+                <div className="w-200 h-200 bg-gradient-radial from-emerald-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl animate-pulse-slow" />
               </div>
 
               {/* Main visual container */}
-              <div className="relative w-full max-w-[900px] aspect-square">
+              <div className="relative w-full max-w-225 aspect-square">
                 {/* Rotating outer ring */}
                 <div className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-500/20 animate-spin-slow" />
                 
@@ -240,7 +240,7 @@ const HomeBuildContent = () => {
                   </div>
 
                   {/* Scanning line */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent animate-scan-line" />
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-emerald-500 to-transparent animate-scan-line" />
 
                   {/* 3D Network Visualization */}
                   <svg

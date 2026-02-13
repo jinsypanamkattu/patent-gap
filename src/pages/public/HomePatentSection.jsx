@@ -116,13 +116,13 @@ const HomePatentSection = () => {
         <div className="absolute -bottom-40 left-1/2 w-96 h-96 bg-emerald-400/8 rounded-full blur-3xl animate-blob animation-delay-4000" />
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 md:px-12 lg:px-20 relative pb-8">
+      <div className="max-w-400 mx-auto px-6 md:px-12 lg:px-20 relative pb-8">
 
         {/* Section header */}
         <div className="text-center mb-12">
           <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
             Intelligent{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-emerald-600">
               Patent Protection
             </span>
           </h2>
@@ -137,12 +137,12 @@ const HomePatentSection = () => {
           {/* ── Left — Dashboard ── */}
           <div className="relative py-6 lg:py-8">
             {/* Glow ring */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 via-emerald-700/10 to-emerald-500/20 rounded-3xl blur-xl" />
+            <div className="absolute -inset-4 bg-linear-to-r from-emerald-500/20 via-emerald-700/10 to-emerald-500/20 rounded-3xl blur-xl" />
 
             <div className="relative bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-emerald-500/20 overflow-hidden">
 
               {/* Header bar */}
-              <div className="bg-gradient-to-r from-emerald-900/80 to-black px-8 py-6 border-b border-emerald-500/20">
+              <div className="bg-linear-to-r from-emerald-900/80 to-black px-8 py-6 border-b border-emerald-500/20">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-2xl font-bold text-white mb-1">Patent Analysis Dashboard</h3>
@@ -188,10 +188,10 @@ const HomePatentSection = () => {
                   </div>
                   <div className="relative h-3 bg-gray-800 rounded-full overflow-hidden">
                     <div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000"
+                      className="absolute inset-y-0 left-0 bg-linear-to-r from-emerald-600 to-emerald-400 rounded-full transition-all duration-1000"
                       style={{ width: '87%' }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                     </div>
                   </div>
                 </div>
@@ -259,7 +259,7 @@ const HomePatentSection = () => {
                 </div>
 
                 {/* Action button */}
-                <button className="w-full mt-6 bg-gradient-to-r from-emerald-600 to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/40 hover:shadow-emerald-700/50 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
+                <button className="w-full mt-6 bg-linear-to-r from-emerald-600 to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg shadow-emerald-900/40 hover:shadow-emerald-700/50 hover:shadow-2xl hover:scale-105 transition-all duration-300 group">
                   <span className="flex items-center justify-center gap-2">
                     Generate Full Report
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -268,12 +268,12 @@ const HomePatentSection = () => {
               </div>
 
               {/* Decorative corners */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-bl-full" />
-              <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-emerald-700/10 to-transparent rounded-tr-full" />
+              <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-bl from-emerald-500/10 to-transparent rounded-bl-full" />
+              <div className="absolute bottom-0 left-0 w-40 h-40 bg-linear-to-tr from-emerald-700/10 to-transparent rounded-tr-full" />
             </div>
 
             {/* Floating info cards */}
-            <div className="absolute -top-8 -right-8 bg-gradient-to-br from-emerald-500 to-emerald-700 text-black px-6 py-4 rounded-2xl shadow-2xl shadow-emerald-900/50 border border-emerald-400/30 animate-float-slow hidden lg:block z-10">
+            <div className="absolute -top-8 -right-8 bg-linear-to-br from-emerald-500 to-emerald-700 text-black px-6 py-4 rounded-2xl shadow-2xl shadow-emerald-900/50 border border-emerald-400/30 animate-float-slow hidden lg:block z-10">
               <div className="text-3xl font-black mb-1">2.4s</div>
               <div className="text-xs font-semibold opacity-80">Avg Analysis</div>
             </div>
@@ -304,7 +304,7 @@ const HomePatentSection = () => {
                   }}
                 >
                   {/* Shimmer */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-500/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
                   <div className="relative z-10">
                     <stat.icon
@@ -332,7 +332,7 @@ const HomePatentSection = () => {
                     onClick={() => setActiveFeature(index)}
                     className={`flex-1 px-6 py-4 font-bold text-sm transition-all duration-300 ${
                       activeFeature === index
-                        ? 'bg-gradient-to-r from-emerald-700/60 to-emerald-900/60 text-emerald-300 border-b-2 border-emerald-400'
+                        ? 'bg-linear-to-r from-emerald-700/60 to-emerald-900/60 text-emerald-300 border-b-2 border-emerald-400'
                         : 'text-gray-400 hover:text-white hover:bg-gray-800/40'
                     }`}
                   >
@@ -412,9 +412,9 @@ const HomePatentSection = () => {
             <div className="flex gap-4">
               <button
                 onClick={() => navigate('/services')}
-                className="flex-1 group relative px-8 py-5 rounded-xl font-bold text-black overflow-hidden shadow-xl shadow-emerald-900/40 hover:shadow-emerald-700/50 hover:shadow-2xl hover:scale-105 transition-all duration-300 bg-gradient-to-r from-emerald-500 to-emerald-600"
+                className="flex-1 group relative px-8 py-5 rounded-xl font-bold text-black overflow-hidden shadow-xl shadow-emerald-900/40 hover:shadow-emerald-700/50 hover:shadow-2xl hover:scale-105 transition-all duration-300 bg-linear-to-r from-emerald-500 to-emerald-600"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 <span className="relative flex items-center justify-center gap-2">
                   Explore Technology
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -425,7 +425,7 @@ const HomePatentSection = () => {
                 onClick={() => navigate('/demo')}
                 className="group relative px-8 py-5 rounded-xl font-bold border-2 border-emerald-500/60 text-emerald-400 hover:text-black overflow-hidden transition-all duration-300 hover:scale-105"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-emerald-600 -translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-emerald-600 -translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 <span className="relative flex items-center gap-2">
                   Try Free
                   <Sparkles className="h-5 w-5 group-hover:rotate-180 transition-transform duration-500" />

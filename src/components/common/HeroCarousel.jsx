@@ -544,7 +544,6 @@ const HeroCarousel = () => {
                     style={{ textShadow: '0 0 50px rgba(16,185,129,0.4)' }}>
                   {slide.title}
                 </h1>
-
                 <p
                   className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-4 md:mb-6 lg:mb-8 leading-tight"
                   style={{

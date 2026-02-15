@@ -540,7 +540,7 @@ const HeroCarousel = () => {
                   <span className="text-emerald-300 text-xs md:text-sm lg:text-base font-bold tracking-wide">AI-POWERED PROTECTION</span>
                 </div>
 
-                <h1 className="text-white text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold mb-3 md:mb-4 lg:mb-6 leading-tight"
+                <h1 className="text-white text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold mb-3 md:mb-4 lg:mb-6 leading-tight md:whitespace-nowrap"
                     style={{ textShadow: '0 0 50px rgba(16,185,129,0.4)' }}>
                   {slide.title}
                 </h1>
@@ -564,7 +564,7 @@ const HeroCarousel = () => {
 
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-                  <button className="px-6 md:px-8 lg:px-10 py-3 md:py-3.5 lg:py-4 rounded-full font-bold text-sm md:text-base text-black bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 transition-all duration-300 shadow-lg transform hover:scale-105"
+                  <button className="px-6 md:px-8 lg:px-10 py-3 md:py-3.5 lg:py-4 rounded-full font-bold text-sm md:text-base text-black bg-linear-to-r from-emerald-400 to-green-500 hover:from-emerald-500 hover:to-green-600 transition-all duration-300 shadow-lg transform hover:scale-105"
                           style={{ boxShadow: '0 0 30px rgba(16,185,129,0.6)' }}>
                     Get Started
                   </button>
@@ -697,7 +697,7 @@ const HeroCarousel = () => {
                       <item.Icon className="text-emerald-400 w-10 h-10 lg:w-12 lg:h-12 xl:w-14 xl:h-14" strokeWidth={1.5} 
                                  style={{ filter: 'drop-shadow(0 0 15px rgba(16,185,129,1))' }}/>
                       <span className="text-xs lg:text-sm xl:text-base text-emerald-300 font-bold">{item.label}</span>
-                      <div className="w-14 lg:w-16 xl:w-20 h-2 rounded-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500"
+                      <div className="w-14 lg:w-16 xl:w-20 h-2 rounded-full bg-linear-to-r from-emerald-500 via-green-500 to-teal-500"
                            style={{ boxShadow: '0 0 20px rgba(16,185,129,1)' }}/>
                     </div>
                   ))}

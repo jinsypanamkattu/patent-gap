@@ -244,6 +244,7 @@ const HomeBuildContent = () => {
 
                   {/* 3D Network Visualization */}
                   <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
+                    
                     <svg
                       viewBox="0 0 600 600"
                       className="w-full h-full"

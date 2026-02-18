@@ -46,7 +46,7 @@ const HomeBuildContent = () => {
   ];
 
   return (
-    <section className="relative w-full min-h-screen overflow-hidden bg-gray-950 py-12 md:py-16 lg:py-20">
+    <section className="relative w-full min-h-screen overflow-hidden py-12 md:py-16 lg:py-20">
       {/* Animated mesh gradient background */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div

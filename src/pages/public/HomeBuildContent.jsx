@@ -42,11 +42,19 @@ const HomeBuildContent = () => {
       color: '#10b981',
       stat: '24/7',
       statLabel: 'Live Monitoring'
+    },
+    {
+      icon: Shield,
+      title: 'Patent Protection Strategy',
+      description: 'Strategic guidance to build a robust IP portfolio and defend against potential challenges',
+      color: '#34d399',
+      stat: '95%',
+      statLabel: 'Success Rate'
     }
   ];
 
   return (
-    <section className="relative w-full min-h-screen overflow-hidden  py-12 md:py-16 lg:py-20">
+    <section className="relative w-full min-h-screen overflow-hidden bg-gray-950 py-12 md:py-16 lg:py-20">
       {/* Animated mesh gradient background */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div
@@ -78,9 +86,9 @@ const HomeBuildContent = () => {
 
           {/* Heading - Full Width Above Everything */}
           <div className="text-center space-y-4 md:space-y-6">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight">
-              <span className="text-white block sm:inline">Built with </span>
-              <span className="relative inline-block mt-2 sm:mt-0">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight whitespace-nowrap">
+              <span className="text-white">Built with </span>
+              <span className="relative inline-block">
                 <span className="absolute -inset-2 opacity-30 blur-2xl" style={{ background: 'linear-gradient(to right, #10b981, #34d399, #10b981)' }} />
                 <span className="relative bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #34d399, #a7f3d0, #10b981)' }}>
                   AI at the Core
@@ -88,7 +96,7 @@ const HomeBuildContent = () => {
               </span>
             </h2>
 
-            <p className="text-base sm:text-lg md:text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto px-4">
+            <p className="text-base text-gray-400 leading-relaxed max-w-2xl mx-auto px-4">
               Patent Gap AI combines artificial intelligence, legal expertise, and
               real-time monitoring to help innovators protect what matters most.
             </p>
@@ -120,7 +128,7 @@ const HomeBuildContent = () => {
                     >
                       <div className="relative bg-gray-900/70 backdrop-blur-xl border-2 border-gray-800 hover:border-emerald-500/40 rounded-2xl p-4 md:p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:-translate-y-1 cursor-pointer overflow-hidden">
                         {/* Shimmer sweep */}
-                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
                         <div className="flex items-start gap-3 md:gap-5 relative z-10">
                           {/* Icon with stat badge */}
@@ -155,10 +163,10 @@ const HomeBuildContent = () => {
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-base md:text-lg text-white mb-1 md:mb-2 group-hover:text-emerald-400 transition-colors duration-300">
+                            <h3 className="font-bold text-sm md:text-base text-white mb-1 group-hover:text-emerald-400 transition-colors duration-300">
                               {feature.title}
                             </h3>
-                            <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
+                            <p className="text-xs text-gray-400 leading-relaxed">
                               {feature.description}
                             </p>
                           </div>
@@ -181,7 +189,7 @@ const HomeBuildContent = () => {
                   className="group relative px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-white overflow-hidden shadow-xl hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-105 text-sm md:text-base"
                   style={{ background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' }}
                 >
-                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                   <span className="relative flex items-center justify-center gap-2">
                     Learn How It Works
                     <ArrowRight className="h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" />
@@ -203,7 +211,7 @@ const HomeBuildContent = () => {
 
             {/* Right Visual - SVG Animation */}
             {/* FIXED: replaced custom min-h classes with standard ones */}
-            <div className="xl:col-span-7 relative flex items-center justify-center order-1 xl:order-2 w-full min-h-125 lg:min-h-150">
+            <div className="xl:col-span-7 relative flex items-center justify-center order-1 xl:order-2 w-full min-h-[500px] lg:min-h-[600px]">
               {/* Glowing orb background */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div

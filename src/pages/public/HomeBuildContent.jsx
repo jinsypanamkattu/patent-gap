@@ -42,14 +42,6 @@ const HomeBuildContent = () => {
       color: '#10b981',
       stat: '24/7',
       statLabel: 'Live Monitoring'
-    },
-    {
-      icon: Shield,
-      title: 'Patent Protection Strategy',
-      description: 'Strategic guidance to build a robust IP portfolio and defend against potential challenges',
-      color: '#34d399',
-      stat: '95%',
-      statLabel: 'Success Rate'
     }
   ];
 

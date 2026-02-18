@@ -90,7 +90,8 @@ const HomePatentSection = () => {
   const patents = [
     { id: 'US 10,234,567', title: 'ML Classification',   risk: 'high',   color: '#ef4444', match: 92 },
     { id: 'US 10,876,543', title: 'Neural Architecture', risk: 'medium', color: '#f59e0b', match: 76 },
-    { id: 'US 11,456,789', title: 'AI Training Methods', risk: 'low',    color: '#34d399', match: 45 }
+    { id: 'US 11,456,789', title: 'AI Training Methods', risk: 'low',    color: '#34d399', match: 45 },
+    { id: 'EP 3,456,123',  title: 'Deep Learning Sys',   risk: 'medium', color: '#f59e0b', match: 68 }
   ];
 
   return (
@@ -120,14 +121,13 @@ const HomePatentSection = () => {
 
         {/* Section header */}
         <div className="text-center mb-12">
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-4 leading-tight whitespace-nowrap">
             Intelligent{" "}
-            {/* FIXED: replaced bg-linear-to-r with bg-gradient-to-r */}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
               Patent Protection
             </span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base text-gray-400 max-w-3xl mx-auto leading-relaxed">
             Our cutting-edge AI platform analyzes millions of patents in seconds,
             ensuring your innovation receives the strongest possible protection.
           </p>
@@ -154,8 +154,8 @@ const HomePatentSection = () => {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-bold text-white mb-1">Patent Analysis Dashboard</h3>
-                    <p className="text-sm text-emerald-400/70">Real-time AI monitoring</p>
+                    <h3 className="text-lg font-bold text-white mb-1">Patent Analysis Dashboard</h3>
+                    <p className="text-xs text-emerald-400/70">Real-time AI monitoring</p>
                   </div>
                   <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-sm px-4 py-2 rounded-full">
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -374,8 +374,8 @@ const HomePatentSection = () => {
                           <Icon className="h-8 w-8" style={{ color: feature.color }} />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-2xl font-black text-white mb-3">{feature.title}</h3>
-                          <p className="text-gray-400 leading-relaxed mb-4">{feature.description}</p>
+                          <h3 className="text-lg font-black text-white mb-2">{feature.title}</h3>
+                          <p className="text-sm text-gray-400 leading-relaxed mb-4">{feature.description}</p>
                           <div className="flex items-center gap-4">
                             <div className="bg-emerald-950/60 rounded-xl px-5 py-3 border border-emerald-500/20">
                               <div className="text-2xl font-black mb-1" style={{ color: feature.color }}>

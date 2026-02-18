@@ -54,18 +54,20 @@ const HomeBuildContent = () => {
   ];
 
   return (
-    <section className="relative w-full min-h-screen overflow-hidden bg-gray-950 py-12 md:py-16 lg:py-20">
+    <section className="relative w-full min-h-screen overflow-hidden  py-12 md:py-16 lg:py-20">
       {/* Animated mesh gradient background */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div 
-          className="absolute top-0 left-0 w-96 h-96 md:w-125 md:h-125 lg:w-200 lg:h-200 bg-gradient-radial from-emerald-500/30 via-emerald-500/10 to-transparent blur-3xl"
+        <div
+          className="absolute top-0 left-0 w-96 h-96 blur-3xl rounded-full"
           style={{
+            background: 'radial-gradient(circle, rgba(16,185,129,0.3) 0%, rgba(16,185,129,0.1) 50%, transparent 100%)',
             transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
           }}
         />
-        <div 
-          className="absolute bottom-0 right-0 w-80 h-80 md:w-96 md:h-96 lg:w-150 lg:h-150 bg-gradient-radial from-emerald-400/20 via-emerald-600/10 to-transparent blur-3xl"
+        <div
+          className="absolute bottom-0 right-0 w-80 h-80 blur-3xl rounded-full"
           style={{
+            background: 'radial-gradient(circle, rgba(52,211,153,0.2) 0%, rgba(16,185,129,0.1) 50%, transparent 100%)',
             transform: `translate(${-mousePosition.x}px, ${-mousePosition.y}px)`
           }}
         />
@@ -78,16 +80,18 @@ const HomeBuildContent = () => {
         <div className="absolute bottom-32 left-[20%] w-20 h-20 md:w-24 md:h-24 border border-emerald-500/20 rounded-full animate-float-slow" style={{ animationDelay: '1s' }} />
       </div>
 
-      <div className="relative max-w-400 mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
+      {/* FIXED: replaced max-w-400 with max-w-7xl which is standard Tailwind */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
         <div className="space-y-8 md:space-y-12 lg:space-y-16">
+
           {/* Heading - Full Width Above Everything */}
           <div className="text-center space-y-4 md:space-y-6">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight">
               <span className="text-white block sm:inline">Built with </span>
               <span className="relative inline-block mt-2 sm:mt-0">
-                <span className="absolute -inset-2 bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 opacity-30 blur-2xl" />
-                <span className="relative bg-linear-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">
-                  AI 
+                <span className="absolute -inset-2 opacity-30 blur-2xl" style={{ background: 'linear-gradient(to right, #10b981, #34d399, #10b981)' }} />
+                <span className="relative bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #34d399, #a7f3d0, #10b981)' }}>
+                  AI at the Core
                 </span>
               </span>
             </h2>
@@ -98,63 +102,59 @@ const HomeBuildContent = () => {
             </p>
           </div>
 
-          {/* Two Column Grid Below - ASYMMETRIC LAYOUT */}
-          <div className="grid lg:grid-cols-12 gap-8 md:gap-12 lg:gap-16 items-center">
-            {/* Left Content - Takes 5 columns on large screens */}
-            <div className="lg:col-span-12 xl:col-span-5 space-y-6 md:space-y-8 lg:space-y-10 order-2 lg:order-1">
-              
-              {/* Features cards - stacked vertically */}
+          {/* Two Column Grid - ASYMMETRIC LAYOUT */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-12 lg:gap-16 items-center">
+
+            {/* Left Content - Features + Buttons */}
+            <div className="xl:col-span-5 space-y-6 md:space-y-8 order-2 xl:order-1">
+
+              {/* Features cards */}
               <div className="space-y-3 md:space-y-4">
                 {features.map((feature, index) => {
                   const Icon = feature.icon;
                   const isActive = activeFeature === index;
-                  
+
                   return (
                     <div
                       key={index}
                       onMouseEnter={() => setActiveFeature(index)}
                       onMouseLeave={() => setActiveFeature(null)}
                       className="group relative"
-                      style={{ 
+                      style={{
                         animation: 'fadeInUp 0.6s ease-out forwards',
                         animationDelay: `${index * 0.15}s`,
                         opacity: 0
                       }}
                     >
-                      {/* Card */}
-                      <div className="relative bg-gray-900/70 backdrop-blur-xl border-2 border-gray-800 hover:border-emerald-500/40 rounded-xl md:rounded-2xl p-4 md:p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:-translate-y-1 cursor-pointer overflow-hidden">
-                        {/* Animated gradient border effect */}
-                        <div className="absolute inset-0 rounded-xl md:rounded-2xl bg-linear-to-r from-emerald-500/0 via-emerald-500/20 to-emerald-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
-                        
+                      <div className="relative bg-gray-900/70 backdrop-blur-xl border-2 border-gray-800 hover:border-emerald-500/40 rounded-2xl p-4 md:p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/20 hover:-translate-y-1 cursor-pointer overflow-hidden">
                         {/* Shimmer sweep */}
-                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-400/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-400/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
                         <div className="flex items-start gap-3 md:gap-5 relative z-10">
                           {/* Icon with stat badge */}
                           <div className="relative shrink-0">
-                            <div 
-                              className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 relative overflow-hidden"
+                            <div
+                              className="w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 relative overflow-hidden"
                               style={{
                                 background: `linear-gradient(135deg, ${feature.color}20 0%, ${feature.color}05 100%)`,
                                 border: `2px solid ${isActive ? feature.color : 'transparent'}`
                               }}
                             >
-                              <Icon 
+                              <Icon
                                 className="h-6 w-6 md:h-8 md:w-8 transition-all duration-500"
                                 style={{ color: feature.color }}
                               />
-                              
-                              {/* Pulse ring on hover */}
                               {isActive && (
-                                <div 
-                                  className="absolute inset-0 rounded-xl md:rounded-2xl animate-ping"
+                                <div
+                                  className="absolute inset-0 rounded-2xl animate-ping"
                                   style={{ backgroundColor: feature.color, opacity: 0.15 }}
                                 />
                               )}
                             </div>
-                            
+
                             {/* Floating stat badge */}
-                            <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 px-1.5 py-0.5 md:px-2 md:py-1 rounded-md md:rounded-lg text-[10px] md:text-xs font-bold text-black shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:scale-100 scale-90"
+                            <div
+                              className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 px-1.5 py-0.5 md:px-2 md:py-1 rounded-lg text-[10px] md:text-xs font-bold text-black shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:scale-100 scale-90"
                               style={{ backgroundColor: feature.color }}
                             >
                               {feature.stat}
@@ -163,7 +163,7 @@ const HomeBuildContent = () => {
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-base md:text-lg text-white mb-1 md:mb-2 transition-all duration-300 group-hover:text-transparent group-hover:bg-linear-to-r group-hover:from-emerald-400 group-hover:to-emerald-300 group-hover:bg-clip-text">
+                            <h3 className="font-bold text-base md:text-lg text-white mb-1 md:mb-2 group-hover:text-emerald-400 transition-colors duration-300">
                               {feature.title}
                             </h3>
                             <p className="text-xs md:text-sm text-gray-400 leading-relaxed">
@@ -172,7 +172,7 @@ const HomeBuildContent = () => {
                           </div>
 
                           {/* Arrow indicator */}
-                          <ArrowRight 
+                          <ArrowRight
                             className="h-4 w-4 md:h-5 md:w-5 text-emerald-500 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-500 shrink-0 mt-1 hidden sm:block"
                           />
                         </div>
@@ -187,9 +187,7 @@ const HomeBuildContent = () => {
                 <button
                   onClick={() => navigate('/services')}
                   className="group relative px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold text-white overflow-hidden shadow-xl hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-105 text-sm md:text-base"
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
-                  }}
+                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' }}
                 >
                   <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                   <span className="relative flex items-center justify-center gap-2">
@@ -197,7 +195,7 @@ const HomeBuildContent = () => {
                     <ArrowRight className="h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </button>
-                
+
                 <button
                   onClick={() => navigate('/demo')}
                   className="group relative px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold border-2 border-emerald-500 text-emerald-400 hover:text-black overflow-hidden transition-all duration-300 text-sm md:text-base"
@@ -211,26 +209,29 @@ const HomeBuildContent = () => {
               </div>
             </div>
 
-            {/* Right Visual - Takes 7 columns on large screens - MUCH LARGER */}
-            <div className="lg:col-span-12 xl:col-span-7 relative flex items-center justify-center order-1 lg:order-2 w-full min-h-125 sm:min-h-150 lg:min-h-175 xl:min-h-200">
-              {/* Massive glowing orb background */}
+            {/* Right Visual - SVG Animation */}
+            {/* FIXED: replaced custom min-h classes with standard ones */}
+            <div className="xl:col-span-7 relative flex items-center justify-center order-1 xl:order-2 w-full min-h-125 lg:min-h-150">
+              {/* Glowing orb background */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-full h-full max-w-200 max-h-200 bg-gradient-radial from-emerald-500/10 via-emerald-500/5 to-transparent rounded-full blur-3xl animate-pulse-slow" />
+                <div
+                  className="w-full h-full rounded-full blur-3xl animate-pulse-slow"
+                  style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.05) 50%, transparent 100%)' }}
+                />
               </div>
 
-              {/* Main visual container - ORIGINAL LARGE SIZE */}
-              <div className="relative w-full h-full max-w-125 sm:max-w-150 lg:max-w-175 xl:max-w-225 aspect-square mx-auto">
+              {/* Main visual container - FIXED: replaced custom max-w classes */}
+              <div className="relative w-full max-w-lg xl:max-w-xl aspect-square mx-auto">
                 {/* Rotating outer ring */}
                 <div className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-500/20 animate-spin-slow" />
-                
                 {/* Counter-rotating middle ring */}
                 <div className="absolute inset-6 sm:inset-8 md:inset-10 lg:inset-12 rounded-full border-2 border-dashed border-emerald-400/30 animate-spin-reverse" />
 
                 {/* Central visual platform */}
-                <div className="absolute inset-12 sm:inset-16 md:inset-20 lg:inset-24 bg-gray-900/90 backdrop-blur-2xl rounded-2xl md:rounded-3xl lg:rounded-[3rem] shadow-2xl shadow-emerald-500/10 border border-emerald-500/20 overflow-hidden">
+                <div className="absolute inset-12 sm:inset-16 md:inset-20 lg:inset-24 bg-gray-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-emerald-500/10 border border-emerald-500/20 overflow-hidden">
                   {/* Grid pattern overlay */}
                   <div className="absolute inset-0 opacity-5">
-                    <div 
+                    <div
                       className="w-full h-full"
                       style={{
                         backgroundImage: 'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
@@ -240,11 +241,10 @@ const HomeBuildContent = () => {
                   </div>
 
                   {/* Scanning line */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-emerald-500 to-transparent animate-scan-line" />
+                  <div className="absolute top-0 left-0 right-0 h-1 animate-scan-line" style={{ background: 'linear-gradient(to right, transparent, #10b981, transparent)' }} />
 
-                  {/* 3D Network Visualization */}
+                  {/* SVG Network Visualization */}
                   <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
-
                     <svg
                       viewBox="0 0 600 600"
                       className="w-full h-full"
@@ -256,16 +256,10 @@ const HomeBuildContent = () => {
                           <stop offset="0%" stopColor="#10b981" />
                           <stop offset="100%" stopColor="#34d399" />
                         </linearGradient>
-                        <linearGradient id="emeraldLightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#34d399" />
-                          <stop offset="100%" stopColor="#6ee7b7" />
-                        </linearGradient>
                         <radialGradient id="glowGradient">
                           <stop offset="0%" stopColor="#10b981" stopOpacity="0.5" />
                           <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
                         </radialGradient>
-                        
-                        {/* Filter for glow effect */}
                         <filter id="glow">
                           <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
                           <feMerge>
@@ -276,85 +270,34 @@ const HomeBuildContent = () => {
                       </defs>
 
                       {/* Outer orbital ring */}
-                      <g className="origin-center" style={{ transformBox: 'fill-box', animation: 'rotate-slow 30s linear infinite' }}>
-                        <circle
-                          cx="300"
-                          cy="300"
-                          r="240"
-                          fill="none"
-                          stroke="url(#emeraldGradient)"
-                          strokeWidth="3"
-                          strokeDasharray="15 15"
-                          opacity="0.4"
-                        />
-                        
-                        {/* Orbital nodes */}
+                      <g style={{ transformOrigin: '300px 300px', animation: 'rotate-slow 30s linear infinite' }}>
+                        <circle cx="300" cy="300" r="240" fill="none" stroke="url(#emeraldGradient)" strokeWidth="3" strokeDasharray="15 15" opacity="0.4" />
                         {[0, 60, 120, 180, 240, 300].map((angle, i) => {
                           const radian = (angle * Math.PI) / 180;
                           const x = 300 + 240 * Math.cos(radian);
                           const y = 300 + 240 * Math.sin(radian);
                           return (
                             <g key={i}>
-                              {/* Glow */}
                               <circle cx={x} cy={y} r="20" fill="url(#glowGradient)" opacity="0.6">
-                                <animate
-                                  attributeName="r"
-                                  values="15;25;15"
-                                  dur="3s"
-                                  begin={`${i * 0.3}s`}
-                                  repeatCount="indefinite"
-                                />
+                                <animate attributeName="r" values="15;25;15" dur="3s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
                               </circle>
-                              
-                              {/* Node */}
                               <circle cx={x} cy={y} r="12" fill="url(#emeraldGradient)" filter="url(#glow)">
-                                <animate
-                                  attributeName="r"
-                                  values="10;14;10"
-                                  dur="3s"
-                                  begin={`${i * 0.3}s`}
-                                  repeatCount="indefinite"
-                                />
+                                <animate attributeName="r" values="10;14;10" dur="3s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
                               </circle>
                             </g>
                           );
                         })}
                       </g>
 
-                      {/* Middle pulsing network */}
+                      {/* Connection web */}
                       <g>
-                        {/* Connection web */}
                         {[
-                          [300, 180, 180, 300],
-                          [300, 180, 420, 300],
-                          [300, 180, 300, 420],
-                          [180, 300, 420, 300],
-                          [180, 300, 300, 420],
-                          [420, 300, 300, 420],
+                          [300, 180, 180, 300],[300, 180, 420, 300],[300, 180, 300, 420],
+                          [180, 300, 420, 300],[180, 300, 300, 420],[420, 300, 300, 420],
                         ].map((coords, i) => (
-                          <line
-                            key={i}
-                            x1={coords[0]}
-                            y1={coords[1]}
-                            x2={coords[2]}
-                            y2={coords[3]}
-                            stroke="url(#emeraldGradient)"
-                            strokeWidth="2"
-                            strokeDasharray="8 8"
-                            opacity="0.3"
-                          >
-                            <animate
-                              attributeName="stroke-dashoffset"
-                              values="0;16"
-                              dur="2s"
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="opacity"
-                              values="0.2;0.5;0.2"
-                              dur="2s"
-                              repeatCount="indefinite"
-                            />
+                          <line key={i} x1={coords[0]} y1={coords[1]} x2={coords[2]} y2={coords[3]} stroke="url(#emeraldGradient)" strokeWidth="2" strokeDasharray="8 8" opacity="0.3">
+                            <animate attributeName="stroke-dashoffset" values="0;16" dur="2s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.2;0.5;0.2" dur="2s" repeatCount="indefinite" />
                           </line>
                         ))}
 
@@ -366,33 +309,13 @@ const HomeBuildContent = () => {
                           { x: 300, y: 420, icon: 'layers' }
                         ].map((node, i) => (
                           <g key={i}>
-                            {/* Outer pulse ring */}
                             <circle cx={node.x} cy={node.y} r="25" fill="none" stroke="#10b981" strokeWidth="2" opacity="0">
-                              <animate
-                                attributeName="r"
-                                values="20;35;20"
-                                dur="3s"
-                                begin={`${i * 0.5}s`}
-                                repeatCount="indefinite"
-                              />
-                              <animate
-                                attributeName="opacity"
-                                values="0.6;0;0.6"
-                                dur="3s"
-                                begin={`${i * 0.5}s`}
-                                repeatCount="indefinite"
-                              />
+                              <animate attributeName="r" values="20;35;20" dur="3s" begin={`${i * 0.5}s`} repeatCount="indefinite" />
+                              <animate attributeName="opacity" values="0.6;0;0.6" dur="3s" begin={`${i * 0.5}s`} repeatCount="indefinite" />
                             </circle>
-
-                            {/* Node background */}
                             <circle cx={node.x} cy={node.y} r="20" fill="#1f2937" stroke="url(#emeraldGradient)" strokeWidth="3" />
-                            
-                            {/* Icon placeholder (simplified geometric shapes) */}
                             {node.icon === 'shield' && (
-                              <path
-                                d={`M ${node.x} ${node.y - 8} L ${node.x + 8} ${node.y - 3} V ${node.y + 5} C ${node.x + 8} ${node.y + 10} ${node.x} ${node.y + 13} ${node.x} ${node.y + 13} C ${node.x} ${node.y + 13} ${node.x - 8} ${node.y + 10} ${node.x - 8} ${node.y + 5} V ${node.y - 3} Z`}
-                                fill="url(#emeraldGradient)"
-                              />
+                              <path d={`M ${node.x} ${node.y - 8} L ${node.x + 8} ${node.y - 3} V ${node.y + 5} C ${node.x + 8} ${node.y + 10} ${node.x} ${node.y + 13} ${node.x} ${node.y + 13} C ${node.x} ${node.y + 13} ${node.x - 8} ${node.y + 10} ${node.x - 8} ${node.y + 5} V ${node.y - 3} Z`} fill="url(#emeraldGradient)" />
                             )}
                             {node.icon === 'lock' && (
                               <g>
@@ -422,46 +345,14 @@ const HomeBuildContent = () => {
 
                       {/* Central AI core */}
                       <g>
-                        {/* Outer glow */}
                         <circle cx="300" cy="300" r="90" fill="url(#glowGradient)" opacity="0.4">
-                          <animate
-                            attributeName="r"
-                            values="85;95;85"
-                            dur="4s"
-                            repeatCount="indefinite"
-                          />
-                          <animate
-                            attributeName="opacity"
-                            values="0.3;0.5;0.3"
-                            dur="4s"
-                            repeatCount="indefinite"
-                          />
+                          <animate attributeName="r" values="85;95;85" dur="4s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite" />
                         </circle>
-
-                        {/* Main shield */}
-                        <path
-                          d="M300 240 L345 260 V310 C345 350 300 380 300 380 C300 380 255 350 255 310 V260 Z"
-                          fill="url(#emeraldGradient)"
-                          stroke="#34d399"
-                          strokeWidth="4"
-                          filter="url(#glow)"
-                        />
-                        
-                        {/* Inner highlight */}
-                        <path
-                          d="M300 250 L335 265 V305 C335 340 300 365 300 365 C300 365 265 340 265 305 V265 Z"
-                          fill="white"
-                          opacity="0.2"
-                        >
-                          <animate
-                            attributeName="opacity"
-                            values="0.15;0.3;0.15"
-                            dur="3s"
-                            repeatCount="indefinite"
-                          />
+                        <path d="M300 240 L345 260 V310 C345 350 300 380 300 380 C300 380 255 350 255 310 V260 Z" fill="url(#emeraldGradient)" stroke="#34d399" strokeWidth="4" filter="url(#glow)" />
+                        <path d="M300 250 L335 265 V305 C335 340 300 365 300 365 C300 365 265 340 265 305 V265 Z" fill="white" opacity="0.2">
+                          <animate attributeName="opacity" values="0.15;0.3;0.15" dur="3s" repeatCount="indefinite" />
                         </path>
-
-                        {/* AI Circuit pattern */}
                         <g opacity="0.9">
                           <rect x="285" y="290" width="30" height="30" fill="none" stroke="#34d399" strokeWidth="2" rx="3" />
                           <line x1="290" y1="295" x2="290" y2="315" stroke="#1f2937" strokeWidth="2" />
@@ -470,63 +361,20 @@ const HomeBuildContent = () => {
                           <line x1="305" y1="295" x2="305" y2="315" stroke="#1f2937" strokeWidth="2" />
                           <line x1="310" y1="295" x2="310" y2="315" stroke="#1f2937" strokeWidth="2" />
                         </g>
-
-                        {/* Text label */}
-                        <text
-                          x="300"
-                          y="235"
-                          textAnchor="middle"
-                          fontSize="20"
-                          fontWeight="bold"
-                          fill="white"
-                          opacity="0.95"
-                          letterSpacing="2"
-                        >
-                          AI CORE
-                        </text>
-                        <text
-                          x="300"
-                          y="462"
-                          textAnchor="middle"
-                          fontSize="12"
-                          fill="#34d399"
-                          opacity="0.9"
-                        >
-                          POWERED INTELLIGENCE
-                        </text>
+                        <text x="300" y="235" textAnchor="middle" fontSize="20" fontWeight="bold" fill="white" opacity="0.95" letterSpacing="2">AI CORE</text>
+                        <text x="300" y="462" textAnchor="middle" fontSize="12" fill="#34d399" opacity="0.9">POWERED INTELLIGENCE</text>
                       </g>
 
-                      {/* Data particles floating */}
+                      {/* Data particles */}
                       {[...Array(12)].map((_, i) => {
                         const angle = (i * 30) * Math.PI / 180;
                         const radius = 140 + (i % 3) * 30;
                         const x = 300 + radius * Math.cos(angle);
                         const y = 300 + radius * Math.sin(angle);
-                        
                         return (
-                          <circle
-                            key={i}
-                            cx={x}
-                            cy={y}
-                            r="3"
-                            fill="#10b981"
-                            opacity="0.7"
-                          >
-                            <animateTransform
-                              attributeName="transform"
-                              type="rotate"
-                              from={`0 300 300`}
-                              to={`360 300 300`}
-                              dur={`${20 + i * 2}s`}
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="opacity"
-                              values="0.4;0.9;0.4"
-                              dur="3s"
-                              begin={`${i * 0.2}s`}
-                              repeatCount="indefinite"
-                            />
+                          <circle key={i} cx={x} cy={y} r="3" fill="#10b981" opacity="0.7">
+                            <animateTransform attributeName="transform" type="rotate" from="0 300 300" to="360 300 300" dur={`${20 + i * 2}s`} repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.4;0.9;0.4" dur="3s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
                           </circle>
                         );
                       })}
@@ -534,98 +382,57 @@ const HomeBuildContent = () => {
                   </div>
 
                   {/* Corner decorations */}
-                  <div className="absolute top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-l-2 border-t-2 md:border-l-3 md:border-t-3 border-emerald-500 rounded-tl-lg md:rounded-tl-xl lg:rounded-tl-2xl" />
-                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-r-2 border-t-2 md:border-r-3 md:border-t-3 border-emerald-500 rounded-tr-lg md:rounded-tr-xl lg:rounded-tr-2xl" />
-                  <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 md:bottom-6 md:left-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-l-2 border-b-2 md:border-l-3 md:border-b-3 border-emerald-500 rounded-bl-lg md:rounded-bl-xl lg:rounded-bl-2xl" />
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-r-2 border-b-2 md:border-r-3 md:border-b-3 border-emerald-500 rounded-br-lg md:rounded-br-xl lg:rounded-br-2xl" />
+                  <div className="absolute top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-l-2 border-t-2 border-emerald-500 rounded-tl-2xl" />
+                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 md:top-6 md:right-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-r-2 border-t-2 border-emerald-500 rounded-tr-2xl" />
+                  <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 md:bottom-6 md:left-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-l-2 border-b-2 border-emerald-500 rounded-bl-2xl" />
+                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-r-2 border-b-2 border-emerald-500 rounded-br-2xl" />
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
 
       <style>{`
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes float-slow {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(5deg); }
         }
-
         @keyframes float-slower {
           0%, 100% { transform: translateY(0) rotate(0deg); }
           50% { transform: translateY(-30px) rotate(-5deg); }
         }
-
         @keyframes pulse-slow {
           0%, 100% { opacity: 0.5; transform: scale(1); }
           50% { opacity: 0.8; transform: scale(1.1); }
         }
-
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-
         @keyframes spin-reverse {
           from { transform: rotate(360deg); }
           to { transform: rotate(0deg); }
         }
-
         @keyframes rotate-slow {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-
         @keyframes scan-line {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
         }
-
-        .animate-float-slow {
-          animation: float-slow 8s ease-in-out infinite;
-        }
-
-        .animate-float-slower {
-          animation: float-slower 10s ease-in-out infinite;
-        }
-
-        .animate-pulse-slow {
-          animation: pulse-slow 6s ease-in-out infinite;
-        }
-
-        .animate-spin-slow {
-          animation: spin-slow 40s linear infinite;
-        }
-
-        .animate-spin-reverse {
-          animation: spin-reverse 35s linear infinite;
-        }
-
-        .animate-scan-line {
-          animation: scan-line 4s linear infinite;
-        }
-
-        .bg-gradient-radial {
-          background: radial-gradient(circle, var(--tw-gradient-stops));
-        }
-
-        .border-l-3,
-        .border-r-3,
-        .border-t-3,
-        .border-b-3 {
-          border-width: 3px;
-        }
+        .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+        .animate-float-slower { animation: float-slower 10s ease-in-out infinite; }
+        .animate-pulse-slow { animation: pulse-slow 6s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 40s linear infinite; }
+        .animate-spin-reverse { animation: spin-reverse 35s linear infinite; }
+        .animate-scan-line { animation: scan-line 4s linear infinite; }
       `}</style>
     </section>
   );

@@ -87,7 +87,7 @@ const HomeBuildContent = () => {
               <span className="relative inline-block mt-2 sm:mt-0">
                 <span className="absolute -inset-2 bg-linear-to-r from-emerald-500 via-emerald-400 to-emerald-500 opacity-30 blur-2xl" />
                 <span className="relative bg-linear-to-r from-emerald-400 via-emerald-300 to-emerald-500 bg-clip-text text-transparent">
-                  AI at the Core
+                  AI 
                 </span>
               </span>
             </h2>

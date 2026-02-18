@@ -41,7 +41,6 @@ const testimonials = [
     tag: "Claim Generation",
     color: "#6ee7b7",
   },
-  
 ];
 
 /* ── Tilt + magnetic glow card ── */
@@ -63,8 +62,6 @@ const TestimonialCard = ({ testimonial, isActive, onClick }) => {
     const rotX = ((y - cy) / cy) * -10;
     const rotY = ((x - cx) / cx) * 10;
     card.style.transform = `perspective(700px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.03)`;
-
-    // Magnetic spotlight glow follows cursor
     if (glowRef.current) {
       glowRef.current.style.background = `radial-gradient(220px circle at ${x}px ${y}px, ${testimonial.color}22, transparent 70%)`;
     }
@@ -72,7 +69,6 @@ const TestimonialCard = ({ testimonial, isActive, onClick }) => {
 
   const handleMouseEnter = () => {
     setHovered(true);
-    // Trigger scan line
     setScanPos(-100);
     let pos = -100;
     clearInterval(scanRef.current);
@@ -189,8 +185,10 @@ const TestimonialCard = ({ testimonial, isActive, onClick }) => {
         />
 
         {/* Text */}
-        <p className="text-sm text-gray-300 leading-relaxed mb-5 line-clamp-4 transition-colors duration-300"
-          style={{ color: hovered ? "#e5e7eb" : "#d1d5db" }}>
+        <p
+          className="text-sm leading-relaxed mb-5 line-clamp-4 transition-colors duration-300"
+          style={{ color: hovered ? "#e5e7eb" : "#d1d5db" }}
+        >
           {testimonial.text}
         </p>
 
@@ -216,21 +214,20 @@ const TestimonialCard = ({ testimonial, isActive, onClick }) => {
         </div>
 
         {/* Author */}
-        <div className="flex items-center gap-3 pt-4 border-t transition-colors duration-300"
-          style={{ borderColor: hovered ? `${testimonial.color}25` : "rgba(16,185,129,0.1)" }}>
-          {/* Avatar with glitch effect */}
-          <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-black shrink-0 transition-all duration-300"
-          style={{
-            background: `linear-gradient(135deg, ${testimonial.color}, ${testimonial.color}99)`,
-            boxShadow: hovered
-              ? `0 0 0 2px ${testimonial.color}60, 0 0 20px ${testimonial.color}40`
-              : "none",
-            transform: hovered ? "scale(1.08)" : "scale(1)", // smooth pop instead of blink
-          }}
+        <div
+          className="flex items-center gap-3 pt-4 border-t transition-colors duration-300"
+          style={{ borderColor: hovered ? `${testimonial.color}25` : "rgba(16,185,129,0.1)" }}
         >
-          {testimonial.avatar}
-        </div>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-black shrink-0 transition-all duration-300"
+            style={{
+              background: `linear-gradient(135deg, ${testimonial.color}, ${testimonial.color}99)`,
+              boxShadow: hovered ? `0 0 0 2px ${testimonial.color}60, 0 0 20px ${testimonial.color}40` : "none",
+              transform: hovered ? "scale(1.08)" : "scale(1)",
+            }}
+          >
+            {testimonial.avatar}
+          </div>
           <div>
             <div className="text-sm font-bold transition-colors duration-300"
               style={{ color: hovered ? "#fff" : "#f9fafb" }}>
@@ -264,7 +261,6 @@ const TestimonialsSection = () => {
   const next = () => { setIsPaused(true); setActiveIndex((p) => (p + 1) % testimonials.length); };
   const active = testimonials[activeIndex];
 
-  // Spotlight card mouse parallax
   const handleSpotMove = (e) => {
     const el = spotlightRef.current;
     if (!el) return;
@@ -287,15 +283,15 @@ const TestimonialsSection = () => {
   return (
     <section className="relative w-full overflow-hidden pt-12 pb-20 md:pt-16 md:pb-28">
 
-
-      <div className="relative max-w-350 mx-auto px-6 md:px-12 lg:px-20">
+      {/* FIXED: max-w-350 → max-w-6xl (standard Tailwind) */}
+      <div className="relative max-w-6xl mx-auto px-6 md:px-12 lg:px-20">
 
         {/* Header */}
         <div className="text-center mb-14">
-          
           <h2 className="text-5xl md:text-6xl font-black text-white leading-tight mb-4">
             Trusted by{" "}
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 via-emerald-300 to-emerald-500">
+            {/* FIXED: bg-linear-to-r → bg-gradient-to-r */}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500">
               Innovators
             </span>{" "}
             Worldwide
@@ -324,13 +320,19 @@ const TestimonialsSection = () => {
             key={active.id}
             style={{
               borderColor: spotHovered ? `${active.color}50` : "rgba(16,185,129,0.3)",
-              transition: spotHovered ? "transform 0.08s ease, border-color 0.3s, box-shadow 0.3s" : "transform 0.5s ease, border-color 0.3s, box-shadow 0.3s",
-              boxShadow: spotHovered ? `0 0 60px ${active.color}15, inset 0 0 40px ${active.color}05` : "none",
+              transition: spotHovered
+                ? "transform 0.08s ease, border-color 0.3s, box-shadow 0.3s"
+                : "transform 0.5s ease, border-color 0.3s, box-shadow 0.3s",
+              boxShadow: spotHovered
+                ? `0 0 60px ${active.color}15, inset 0 0 40px ${active.color}05`
+                : "none",
             }}
           >
             {/* Top accent */}
-            <div className="absolute top-0 left-0 right-0 h-0.5"
-              style={{ background: `linear-gradient(90deg, transparent, ${active.color}, transparent)` }} />
+            <div
+              className="absolute top-0 left-0 right-0 h-0.5"
+              style={{ background: `linear-gradient(90deg, transparent, ${active.color}, transparent)` }}
+            />
 
             {/* Animated corner brackets on hover */}
             {spotHovered && (
@@ -347,11 +349,13 @@ const TestimonialsSection = () => {
             )}
 
             {/* Corner glow blob */}
-            <div className="absolute top-0 right-0 w-64 h-64 rounded-bl-full opacity-10 transition-opacity duration-300"
+            <div
+              className="absolute top-0 right-0 w-64 h-64 rounded-bl-full transition-opacity duration-300"
               style={{
                 background: `radial-gradient(circle, ${active.color}, transparent 70%)`,
                 opacity: spotHovered ? 0.18 : 0.08,
-              }} />
+              }}
+            />
 
             <div className="relative z-10 grid md:grid-cols-[1fr_auto] gap-8 items-center">
               <div>
@@ -370,21 +374,31 @@ const TestimonialsSection = () => {
                   </span>
                   <div className="flex gap-1">
                     {[...Array(active.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-emerald-400 text-emerald-400"
-                        style={{ filter: spotHovered ? "drop-shadow(0 0 5px #34d399)" : "none", transition: `all 0.2s ${i * 50}ms` }} />
+                      <Star
+                        key={i}
+                        className="h-4 w-4 fill-emerald-400 text-emerald-400"
+                        style={{
+                          filter: spotHovered ? "drop-shadow(0 0 5px #34d399)" : "none",
+                          transition: `all 0.2s ${i * 50}ms`,
+                        }}
+                      />
                     ))}
                   </div>
                 </div>
 
-                <Quote className="h-10 w-10 mb-4 transition-all duration-300"
+                <Quote
+                  className="h-10 w-10 mb-4 transition-all duration-300"
                   style={{
                     color: active.color,
                     opacity: spotHovered ? 0.5 : 0.2,
                     filter: spotHovered ? `drop-shadow(0 0 10px ${active.color})` : "none",
-                  }} />
+                  }}
+                />
 
-                <blockquote className="text-xl md:text-2xl text-white font-medium leading-relaxed mb-8 transition-colors duration-300"
-                  style={{ color: spotHovered ? "#fff" : "#f3f4f6" }}>
+                <blockquote
+                  className="text-xl md:text-2xl font-medium leading-relaxed mb-8 transition-colors duration-300"
+                  style={{ color: spotHovered ? "#fff" : "#f3f4f6" }}
+                >
                   "{active.text}"
                 </blockquote>
 
@@ -394,7 +408,9 @@ const TestimonialsSection = () => {
                     className="w-14 h-14 rounded-full flex items-center justify-center text-base font-black text-black shadow-lg transition-all duration-300"
                     style={{
                       background: `linear-gradient(135deg, ${active.color}, ${active.color}80)`,
-                      boxShadow: spotHovered ? `0 0 0 3px ${active.color}50, 0 0 30px ${active.color}40` : "none",
+                      boxShadow: spotHovered
+                        ? `0 0 0 3px ${active.color}50, 0 0 30px ${active.color}40`
+                        : "none",
                     }}
                   >
                     {active.avatar}
@@ -406,23 +422,30 @@ const TestimonialsSection = () => {
                 </div>
               </div>
 
-              {/* Stat block */}
+              {/* Stat block — FIXED: max-w-30 → inline style max-width */}
               <div
                 className="text-center px-8 py-6 rounded-2xl border shrink-0 transition-all duration-300"
                 style={{
                   borderColor: `${active.color}${spotHovered ? "60" : "30"}`,
                   background: `${active.color}${spotHovered ? "12" : "08"}`,
-                  boxShadow: spotHovered ? `0 0 30px ${active.color}20, inset 0 0 20px ${active.color}08` : "none",
+                  boxShadow: spotHovered
+                    ? `0 0 30px ${active.color}20, inset 0 0 20px ${active.color}08`
+                    : "none",
                 }}
               >
-                <div className="text-5xl font-black mb-2 transition-all duration-300"
+                <div
+                  className="text-5xl font-black mb-2 transition-all duration-300"
                   style={{
                     color: active.color,
                     textShadow: spotHovered ? `0 0 30px ${active.color}` : "none",
-                  }}>
+                  }}
+                >
                   {active.stat}
                 </div>
-                <div className="text-sm text-gray-400 font-semibold max-w-30">{active.statLabel}</div>
+                {/* FIXED: max-w-30 → inline style */}
+                <div className="text-sm text-gray-400 font-semibold" style={{ maxWidth: "7.5rem" }}>
+                  {active.statLabel}
+                </div>
               </div>
             </div>
 
@@ -430,20 +453,33 @@ const TestimonialsSection = () => {
             <div className="relative z-10 flex items-center justify-between mt-8 pt-6 border-t border-emerald-500/10">
               <div className="flex gap-2 items-center">
                 {testimonials.map((_, i) => (
-                  <button key={i} onClick={() => { setIsPaused(true); setActiveIndex(i); }}
+                  <button
+                    key={i}
+                    onClick={() => { setIsPaused(true); setActiveIndex(i); }}
                     className="transition-all duration-300 rounded-full"
-                    style={{ width: i === activeIndex ? "28px" : "8px", height: "8px",
+                    style={{
+                      width: i === activeIndex ? "28px" : "8px",
+                      height: "8px",
                       background: i === activeIndex ? active.color : "#374151",
-                      boxShadow: i === activeIndex ? `0 0 8px ${active.color}` : "none" }} />
+                      boxShadow: i === activeIndex ? `0 0 8px ${active.color}` : "none",
+                    }}
+                  />
                 ))}
               </div>
               <div className="flex gap-2">
                 {[{ Icon: ChevronLeft, fn: prev }, { Icon: ChevronRight, fn: next }].map(({ Icon, fn }, i) => (
-                  <button key={i} onClick={fn}
-                    className="w-10 h-10 rounded-full border border-emerald-500/25 text-emerald-400 flex items-center justify-center transition-all duration-200 hover:border-emerald-400 hover:text-white group"
-                    style={{ background: "transparent" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = `${active.color}18`; e.currentTarget.style.boxShadow = `0 0 16px ${active.color}30`; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.boxShadow = "none"; }}
+                  <button
+                    key={i}
+                    onClick={fn}
+                    className="w-10 h-10 rounded-full border border-emerald-500/25 text-emerald-400 flex items-center justify-center transition-all duration-200 hover:border-emerald-400 hover:text-white"
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = `${active.color}18`;
+                      e.currentTarget.style.boxShadow = `0 0 16px ${active.color}30`;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                   >
                     <Icon className="h-5 w-5" />
                   </button>
@@ -472,19 +508,12 @@ const TestimonialsSection = () => {
           33%       { transform: translate(30px,-40px) scale(1.08); }
           66%       { transform: translate(-20px,20px) scale(0.94); }
         }
-        @keyframes glitch {
-          0%   { clip-path: inset(0 0 90% 0); transform: translateX(-2px); }
-          25%  { clip-path: inset(40% 0 50% 0); transform: translateX(2px); }
-          50%  { clip-path: inset(70% 0 10% 0); transform: translateX(-1px); }
-          75%  { clip-path: inset(20% 0 70% 0); transform: translateX(1px); }
-          100% { clip-path: inset(0 0 90% 0); transform: translateX(0); }
-        }
         @keyframes corner-draw {
           from { opacity: 0; transform: scale(0.6); }
           to   { opacity: 1; transform: scale(1); }
         }
-        .animate-blob         { animation: blob 8s infinite ease-in-out; }
-        .animate-corner-draw  { animation: corner-draw 0.25s ease-out forwards; }
+        .animate-blob        { animation: blob 8s infinite ease-in-out; }
+        .animate-corner-draw { animation: corner-draw 0.25s ease-out forwards; }
       `}</style>
     </section>
   );

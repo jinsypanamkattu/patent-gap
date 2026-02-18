@@ -90,8 +90,7 @@ const HomePatentSection = () => {
   const patents = [
     { id: 'US 10,234,567', title: 'ML Classification',   risk: 'high',   color: '#ef4444', match: 92 },
     { id: 'US 10,876,543', title: 'Neural Architecture', risk: 'medium', color: '#f59e0b', match: 76 },
-    { id: 'US 11,456,789', title: 'AI Training Methods', risk: 'low',    color: '#34d399', match: 45 },
-    { id: 'EP 3,456,123',  title: 'Deep Learning Sys',   risk: 'medium', color: '#f59e0b', match: 68 }
+    { id: 'US 11,456,789', title: 'AI Training Methods', risk: 'low',    color: '#34d399', match: 45 }
   ];
 
   return (

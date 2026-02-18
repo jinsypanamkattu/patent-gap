@@ -288,15 +288,14 @@ const TestimonialsSection = () => {
 
         {/* Header */}
         <div className="text-center mb-14">
-          <h2 className="text-5xl md:text-6xl font-black text-white leading-tight mb-4">
+          <h2 className="text-3xl md:text-4xl font-black text-white leading-tight mb-4 whitespace-nowrap">
             Trusted by{" "}
-            {/* FIXED: bg-linear-to-r → bg-gradient-to-r */}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-300 to-emerald-500">
               Innovators
             </span>{" "}
             Worldwide
           </h2>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base text-gray-400 max-w-2xl mx-auto leading-relaxed">
             From fast-growing startups to global enterprises — see how teams protect their most valuable assets with AI-driven patent intelligence.
           </p>
         </div>
@@ -396,7 +395,7 @@ const TestimonialsSection = () => {
                 />
 
                 <blockquote
-                  className="text-xl md:text-2xl font-medium leading-relaxed mb-8 transition-colors duration-300"
+                  className="text-base md:text-lg font-medium leading-relaxed mb-6 transition-colors duration-300"
                   style={{ color: spotHovered ? "#fff" : "#f3f4f6" }}
                 >
                   "{active.text}"
@@ -434,7 +433,7 @@ const TestimonialsSection = () => {
                 }}
               >
                 <div
-                  className="text-5xl font-black mb-2 transition-all duration-300"
+                  className="text-4xl font-black mb-2 transition-all duration-300"
                   style={{
                     color: active.color,
                     textShadow: spotHovered ? `0 0 30px ${active.color}` : "none",

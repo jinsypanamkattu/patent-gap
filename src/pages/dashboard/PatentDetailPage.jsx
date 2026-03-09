@@ -136,6 +136,9 @@ const PatentDetailPage = () => {
   const [sidebarOpen,     setSidebarOpen]     = useState(false);
   const [activeItem,      setActiveItem]      = useState('projects');
 
+  // ── NEW: track which document index is currently loading ──
+  const [loadingDocIndex, setLoadingDocIndex] = useState(null);
+
   const title          = caseData?.title    || projectData.title        || 'Untitled Case';
   const patentNumber   = caseData?.patentId || projectData.patentNumber || caseData?._id?.split('_')[1] || 'N/A';
   const status         = getStatusShorthand(caseData?.status || projectData.status || 'draft');
@@ -199,37 +202,36 @@ const PatentDetailPage = () => {
   useEffect(() => { fetchCaseDetails(); }, [fetchCaseDetails]);
 
   const beginSimilarityAnalysis = async () => {
-  setAnalysisLoading(true);
-  setAnalysisStatus('infringement');
-  try {
-    const analysisData  = await patentApi.getInfringementAnalysis(caseId);
-    const infringements = analysisData.similar_infringements || [];
-    const claims        = analysisData.claims || [];
+    setAnalysisLoading(true);
+    setAnalysisStatus('infringement');
+    try {
+      const analysisData  = await patentApi.getInfringementAnalysis(caseId);
+      const infringements = analysisData.similar_infringements || [];
+      const claims        = analysisData.claims || [];
 
-    // Always save — even if no infringements, claims should persist
-    await patentApi.updateCase(caseId, { infringements, claims });
+      await patentApi.updateCase(caseId, { infringements, claims });
 
-    // Refresh claims chart after new analysis
-    let claimsChart = {};
-    if (claims.length > 0) {
-      try {
-        claimsChart = await patentApi.getInfringementChart(caseId) || {};
-      } catch (e) { console.warn('Claims chart unavailable', e); }
+      let claimsChart = {};
+      if (claims.length > 0) {
+        try {
+          claimsChart = await patentApi.getInfringementChart(caseId) || {};
+        } catch (e) { console.warn('Claims chart unavailable', e); }
+      }
+
+      setCaseData(prev => ({ ...prev, infringements, claims, claimsChart }));
+      dispatch(updatePatent({ _id: caseId, infringements, claims }));
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      alert('Analysis failed: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setAnalysisLoading(false);
+      setAnalysisStatus('idle');
     }
+  };
 
-    setCaseData(prev => ({ ...prev, infringements, claims, claimsChart }));
-    dispatch(updatePatent({ _id: caseId, infringements, claims }));
-  } catch (err) {
-    console.error('Analysis failed:', err);
-    alert('Analysis failed: ' + (err?.message || 'Unknown error'));
-  } finally {
-    setAnalysisLoading(false);
-    setAnalysisStatus('idle');
-  }
-};
-  const exportCase  = () => alert(`Exporting case for ${title}`);
+  const exportCase = () => alert(`Exporting case for ${title}`);
 
-  const deleteCase  = async () => {
+  const deleteCase = async () => {
     if (!window.confirm('Are you sure you want to delete this case? This action cannot be undone.')) return;
     try {
       await patentApi.deleteCase(caseId);
@@ -238,14 +240,20 @@ const PatentDetailPage = () => {
     } catch (err) { alert(`Error: ${err?.message}`); }
   };
 
-  const openDocument = async (url) => {
+  // ── UPDATED: openDocument now accepts index and manages loadingDocIndex ──
+  const openDocument = async (url, index) => {
     const fileName = url.split('/').pop();
     const fileType = url.endsWith('.pdf') ? 'application/pdf' : 'application/xml';
+    setLoadingDocIndex(index);
     try {
       const blob = await patentApi.proxyDocument(url);
       const file = new File([blob], fileName, { type: fileType });
       window.open(URL.createObjectURL(file), '_blank');
-    } catch (e) { alert('Error opening document: ' + (e?.message || e)); }
+    } catch (e) {
+      alert('Error opening document: ' + (e?.message || e));
+    } finally {
+      setLoadingDocIndex(null);
+    }
   };
 
   if (pageLoading) {
@@ -507,19 +515,40 @@ const PatentDetailPage = () => {
             <div className="pd-docs-grid">
               {caseData?.documents?.length > 0
                 ? caseData.documents.map((doc, i) => {
-                    const url   = doc.url || '';
-                    const ext   = url.split('.').pop();
-                    const src   = doc.source || '';
-                    const bgImg = src === 'uspto' ? 'uspto.jpg' : 'local.png';
+                    const url            = doc.url || '';
+                    const ext            = url.split('.').pop();
+                    const src            = doc.source || '';
+                    const bgImg          = src === 'uspto' ? 'uspto.jpg' : 'local.png';
+                    const isLoadingThis  = loadingDocIndex === i;
+
                     return (
-                      <div key={i} onClick={() => openDocument(url)} className="pd-doc-thumb">
-                        <div className="pd-doc-inner"
-                          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'}
+                      <div
+                        key={i}
+                        onClick={() => !isLoadingThis && openDocument(url, i)}
+                        className="pd-doc-thumb"
+                      >
+                        <div
+                          className="pd-doc-inner"
+                          onMouseEnter={e => { if (!isLoadingThis) e.currentTarget.style.transform = 'translateY(-3px)'; }}
                           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                          style={{ cursor: isLoadingThis ? 'wait' : 'pointer' }}
                         >
-                          <img src={`/images/${bgImg}`} alt={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img
+                            src={`/images/${bgImg}`}
+                            alt={src}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
                           <div className="pd-doc-blur" />
-                          <div className="pd-doc-label">{i + 1}.{ext}</div>
+
+                          {/* ── Spinner overlay while loading ── */}
+                          {isLoadingThis ? (
+                            <div className="pd-doc-loader">
+                              <div className="pd-doc-spinner" />
+                              <span className="pd-doc-loader-text">Opening…</span>
+                            </div>
+                          ) : (
+                            <div className="pd-doc-label">{i + 1}.{ext}</div>
+                          )}
                         </div>
                       </div>
                     );
@@ -774,6 +803,31 @@ const PatentDetailPage = () => {
           flex-direction: column; gap: 8px;
         }
         .pd-doc-placeholder .pd-doc-label { position: static; font-size: 13px; }
+
+        /* ── Doc loader overlay ── */
+        .pd-doc-loader {
+          position: absolute; inset: 0;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 8px;
+          background: rgba(250,250,247,0.82);
+          backdrop-filter: blur(4px);
+          z-index: 3;
+        }
+        .pd-doc-spinner {
+          width: 26px; height: 26px;
+          border: 2.5px solid var(--rule2);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: spin 0.75s linear infinite;
+        }
+        .pd-doc-loader-text {
+          font-family: 'Inconsolata', monospace;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.10em;
+          color: var(--ink3);
+        }
 
         /* ── No-matches ── */
         .pd-no-matches {

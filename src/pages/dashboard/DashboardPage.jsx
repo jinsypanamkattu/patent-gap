@@ -1,408 +1,665 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useStore } from '../../hooks/useStore';
-import { mockPatents } from '../../utils/mockData';
-import {
-  Plus,
-  FileText,
-  Search,
-  AlertTriangle,
-  CheckCircle,
-  TrendingUp,
-  Sparkles,
-  ArrowRight
-} from 'lucide-react';
-
-import ProjectCard from '../../components/dashboard/ProjectCard';
+import { useUI } from '../../hooks/useUI';
+import { usePatents } from '../../hooks/usePatents';
+import { useAuth } from '../../hooks/useAuth';
+import { RefreshCw } from 'lucide-react';
+import { Search, FileText, AlertTriangle, CheckCircle} from 'lucide-react';
 import StatCard from '../../components/dashboard/StatCard';
-import WeeklySearchCard from '../../components/dashboard/WeeklySearchCard';
+import ProjectCard from '../../components/dashboard/ProjectCard';
 import ProjectModal from '../../components/dashboard/ProjectModal';
+import DashboardSidebar from '../../components/layout/DashboardSidebar';
 
-const DashboardPage = () => {
-  const { state, setPage } = useStore();
+// ✅ Matches HTML getStatusShorthand()
+const getStatusShorthand = (status) => {
+  status = String(status || '');
+  if (status.includes('Expired')) return 'expired';
+  if (status.includes('Patented')) return 'patented';
+  if (status.includes('Abandoned')) return 'abandoned';
+  if (status.includes('-')) return status.split('-')[0].toLowerCase();
+  if (status.includes('_')) return status.split('_')[0].toLowerCase();
+  return status.toLowerCase();
+};
+
+// ✅ Matches HTML formatTimeAgo()
+const formatTimeAgo = (dateString) => {
+  if (!dateString) return 'Unknown';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  return `${Math.floor(diffInSeconds / 604800)} weeks ago`;
+};
+
+// ✅ Matches HTML formatDate()
+const formatDate = (dateString) => {
+  if (!dateString) return 'Unknown';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+};
+
+export default function DashboardPage() {
+  const { patents, ui } = useStore();
+  const { setPage } = useUI();
+  const { loadPatents, loadStats } = usePatents();
+  const { logout } = useAuth();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const activePatents = state.patents.filter(p => p.status === 'active');
-  const closedPatents = state.patents.filter(p => p.status === 'closed');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeItem, setActiveItem] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [alertDismissed, setAlertDismissed] = useState(false);
 
   const newPatent = { title: '', patentNumber: '' };
 
+  useEffect(() => {
+    handleLoadDashboard();
+  }, []);
+
+  const handleLoadDashboard = async () => {
+    console.log('🔐 Session:', JSON.parse(localStorage.getItem('session') || '{}'));
+    await Promise.all([loadPatents()]);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await handleLoadDashboard();
+    setIsRefreshing(false);
+  };
+
+  const mappedPatents = patents.patents.map(p => ({
+    id: p._id,
+    title: p.title || p.name || 'Untitled Project',
+    patentNumber: p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+    status: getStatusShorthand(p.status),
+    updatedAt: formatTimeAgo(p.lastUpdated || p.updated_date || p.created_date),
+    inventors: p.inventors,
+    filedDate: p.filedDate || p.filed_date,
+    keywords: p.keywords,
+    description: p.description,
+    matchesCount: p.matchCount || p.match_count || 0,
+    documentsCount: p.documentsCount,
+    progress: p.progress || 0,
+  }));
+
+  const activePatents = patents.patents.filter(p =>
+    ['patented', 'active'].includes(getStatusShorthand(p.status))
+  );
+  const closedPatents = patents.patents.filter(p =>
+    ['expired', 'abandoned'].includes(getStatusShorthand(p.status))
+  );
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-[#EDEADC] via-[#F5F3E8] to-[#EDEADC] px-6 py-8">
+    <div className="dash-shell">
+      <DashboardSidebar
+        activeItem={activeItem}
+        onItemClick={setActiveItem}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <main className="dash-main">
+
+        {/* ── Top Nav ── */}
+        <header className="topnav">
+          <div className="tn-left">
+            <button className="tn-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <span className="tn-title">Patent Gap AI</span>
+            <div className="tn-sep" />
+            <span className="tn-sub">Dashboard</span>
+          </div>
+
+          <div className="tn-center">
+            <div className="tn-search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input placeholder="Search patents, findings..." />
+            </div>
+          </div>
+
+          <div className="tn-right">
+            <button className="tn-icon" aria-label="Notifications">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </button>
+            <div className="tn-vsep" />
+            <Link to="/" className="tn-btn tn-btn--home">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span>Home</span>
+            </Link>
+            <button className="tn-btn" onClick={() => { logout(); }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              <span className="tn-btn-label">Log out</span>
+            </button>
+          </div>
+        </header>
+
+        {/* ── Content ── */}
+        <div className="dash-content">
+
+          {/* Alert */}
+          {!alertDismissed && (patents.stats.highRiskMatches > 0 || true) && (
+            <div className="alert">
+              <div className="alert-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div className="alert-body">
+                {ui.error
+                  ? <><strong>Error:</strong> {ui.error}</>
+                  : <><strong>{patents.stats.highRiskMatches || 0} HIGH risk findings</strong> require attorney review — potential infringement detected.</>
+                }
+              </div>
+              <button className="alert-close" onClick={() => setAlertDismissed(true)}>×</button>
+            </div>
+          )}
+
+          {/* ── Page Header ── */}
+          <div className="page-hd">
+            <div>
+              <div className="page-eyebrow">Overview</div>
+              <h1 className="page-title">Patent <em>Monitoring</em></h1>
+            </div>
+            <div className="hd-actions">
+              <button className="btn-export">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span className="btn-label">Export</span>
+              </button>
+              <button className="btn-new" onClick={() => setIsModalOpen(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add Patent
+              </button>
+            </div>
+          </div>
+
+          {/* ── Stats ── */}
+          <div className="stats-grid">
+            <StatCard
+              title="Active Scans"
+              value={ui.loading ? '—' : (patents.stats.activeScans || activePatents.length)}
+              subtitle="This week"
+              icon={<Search size={18} />}
+              color="blue"
+            />
+            <StatCard
+              title="Patents Analyzed"
+              value={ui.loading ? '—' : (patents.stats.patentsAnalyzed || patents.patents.length)}
+              subtitle="Total"
+              icon={<FileText size={18} />}
+              color="purple"
+            />
+            <StatCard
+              title="High Risk Matches"
+              value={ui.loading ? '—' : (patents.stats.highRiskMatches || 0)}
+              subtitle="Requires attention"
+              icon={<AlertTriangle size={18} />}
+              color="yellow"
+            />
+            <StatCard
+              title="Cleared Patents"
+              value={ui.loading ? '—' : (patents.stats.clearedPatents || closedPatents.length)}
+              subtitle="No infringement"
+              icon={<CheckCircle size={18} />}
+              color="green"
+            />
+          </div>
+
+          {/* ── Section Header ── */}
+          <div className="sec-hd">
+            <div className="sec-hd-left">
+              <div className="sec-ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+                </svg>
+              </div>
+              <div>
+                <div className="sec-eye">
+                  <div className="live-dot" />
+                  Live Monitoring
+                </div>
+                <div className="sec-title">Active Patents</div>
+              </div>
+            </div>
+            <div className="sec-hd-right">
+              <button className="btn-refresh" onClick={handleRefresh} aria-label="Refresh">
+                <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              </button>
+              <button className="btn-viewall">
+                <span>View All</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* ── Loading state ── */}
+          {ui.loading && (
+            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+              <div style={{
+                width: 36, height: 36, border: '3px solid var(--rule2)',
+                borderTop: '3px solid var(--accent)', borderRadius: '50%',
+                animation: 'spin 1s linear infinite', margin: '0 auto 12px',
+              }} />
+              <p style={{ fontSize: 14, color: 'var(--ink3)' }}>Loading projects...</p>
+            </div>
+          )}
+
+          {/* ── Empty state ── */}
+          {!ui.loading && mappedPatents.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📭</div>
+              <p style={{ fontSize: 15 }}>No patents found. Add a patent to get started.</p>
+              <button className="btn-new" style={{ marginTop: 20 }} onClick={() => setIsModalOpen(true)}>
+                + Add Patent
+              </button>
+            </div>
+          )}
+
+          {/* ── Patent Cards Grid ── */}
+          {!ui.loading && mappedPatents.length > 0 && (
+            <div className="patents-grid">
+              {mappedPatents.map((patent, index) => (
+                <div
+                  key={patent.id}
+                  className="animate-fadeInUp"
+                  style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
+                >
+                  <ProjectCard {...patent} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Weekly Search Section ── */}
+          <div className="sec-hd" style={{ marginTop: 40 }}>
+            <div className="sec-hd-left">
+              <div className="sec-ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </div>
+              <div>
+                <div className="sec-eye">
+                  <div className="live-dot" />
+                  Automated Monitoring
+                </div>
+                <div className="sec-title">Weekly Search Results</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pcard patented weekly-card">
+            <div className="pcard-top">
+              <span className="pcard-badge patented">
+                <span className="pcard-dot" />
+                Active
+              </span>
+            </div>
+            <div className="pcard-title" style={{ fontSize: 15 }}>Automated VGR Monitoring</div>
+            <div className="pcard-num">
+              {patents.stats.lastScanDate
+                ? `Last scan: ${formatDate(patents.stats.lastScanDate)}`
+                : 'Last scan: Loading...'}
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--ink2)', margin: '10px 0', lineHeight: 1.6, fontWeight: 300 }}>
+              Weekly automated scans monitor competitor filings and industry changes relevant to your portfolio.
+            </p>
+            <div className="pcard-foot">
+              <div className="pcard-live">
+                <div className="live-bars"><span /><span /><span /><span /></div>
+                {patents.stats.newResults || 0} new results
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
       <style>{`
+        /* ────────────────────────────────────────
+           RESPONSIVE DASHBOARD — ALL BREAKPOINTS
+        ──────────────────────────────────────── */
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
         @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+          margin-bottom: 32px;
+        }
+
+        /* ── Patents grid ── */
+        .patents-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+
+        /* ── Weekly card max-width ── */
+        .weekly-card {
+          max-width: 100%;
+          width: 100%;
+        }
+
+        /* ── Top nav: hide search on small screens ── */
+        .tn-center { display: flex; }
+        .tn-sep    { display: block; }
+        .tn-sub    { display: block; }
+
+        /* ── Topnav label visibility ── */
+        .tn-btn-label { display: inline; }
+
+        /* ── btn-label in page header ── */
+        .btn-label { display: inline; }
+
+        /* ── Home button label ── */
+        .tn-btn--home span { display: inline; }
+
+        /* ════════════════════════════════════════
+           LARGE DESKTOP  ≥ 1280px  (no changes)
+        ════════════════════════════════════════ */
+
+        /* ════════════════════════════════════════
+           MEDIUM DESKTOP  1024px – 1279px
+        ════════════════════════════════════════ */
+        @media (max-width: 1279px) {
+          .stats-grid {
+            gap: 16px;
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+          .patents-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
           }
         }
-        @keyframes shimmer {
-          0% {
-            background-position: -1000px 0;
+
+        /* ════════════════════════════════════════
+           TABLET LANDSCAPE  768px – 1023px
+        ════════════════════════════════════════ */
+        @media (max-width: 1023px) {
+          .dash-content {
+            padding: 20px 20px 40px !important;
           }
-          100% {
-            background-position: 1000px 0;
+
+          /* Topnav: hide separator + "Dashboard" subtitle */
+          .tn-sep { display: none; }
+          .tn-sub { display: none; }
+
+          /* Topnav: collapse search bar width */
+          .tn-search input {
+            width: 140px !important;
+          }
+
+          /* Stats: 2x2 grid */
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+          }
+
+          /* Patents: 2 columns */
+          .patents-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+          }
+
+          /* Page header stack */
+          .page-hd {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+
+          .page-title {
+            font-size: clamp(20px, 4vw, 28px) !important;
+          }
+
+          /* Sec header wrapping */
+          .sec-hd {
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          .weekly-card {
+            max-width: 100%;
           }
         }
-        @keyframes pulse-glow {
-          0%, 100% {
-            box-shadow: 0 0 20px rgba(201, 169, 77, 0.3);
+
+        /* ════════════════════════════════════════
+           TABLET PORTRAIT  600px – 767px
+        ════════════════════════════════════════ */
+        @media (max-width: 767px) {
+          .topnav {
+            padding: 0 14px !important;
+            height: 52px !important;
           }
-          50% {
-            box-shadow: 0 0 40px rgba(201, 169, 77, 0.5);
+
+          /* Hide search entirely on tablet portrait */
+          .tn-center { display: none; }
+
+          /* Hide home label, keep icon */
+          .tn-btn--home span { display: none; }
+
+          /* Topnav title smaller */
+          .tn-title {
+            font-size: 13px !important;
+          }
+
+          /* Dash content */
+          .dash-content {
+            padding: 16px 16px 40px !important;
+          }
+
+          /* Alert responsive */
+          .alert {
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+          }
+
+          /* Page header */
+          .page-hd {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            margin-bottom: 20px !important;
+          }
+
+          .page-title {
+            font-size: 22px !important;
+          }
+
+          .hd-actions {
+            width: 100%;
+            justify-content: flex-end;
+          }
+
+          /* Stats: 2 cols */
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+          }
+
+          /* Patents: 1 column */
+          .patents-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          /* Section header: wrap */
+          .sec-hd {
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+
+          .sec-title {
+            font-size: 14px !important;
+          }
+
+          .weekly-card {
+            max-width: 100%;
           }
         }
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out forwards;
+
+        /* ════════════════════════════════════════
+           MOBILE  < 600px
+        ════════════════════════════════════════ */
+        @media (max-width: 599px) {
+          .topnav {
+            padding: 0 12px !important;
+            height: 50px !important;
+          }
+
+          /* Hide decorative topnav items */
+          .tn-center  { display: none; }
+          .tn-vsep    { display: none !important; }
+          .tn-btn--home { display: none !important; }
+          .tn-btn-label { display: none; }
+
+          /* Title */
+          .tn-title { font-size: 12px !important; }
+
+          /* Logout: icon only */
+          .tn-btn svg { width: 15px; height: 15px; }
+
+          /* Dash content narrower padding */
+          .dash-content {
+            padding: 14px 12px 40px !important;
+          }
+
+          /* Alert layout */
+          .alert {
+            flex-wrap: wrap;
+            padding: 10px 10px !important;
+            gap: 8px !important;
+          }
+          .alert-body { font-size: 12px !important; flex: 1 1 0; min-width: 0; }
+
+          /* Page header */
+          .page-hd {
+            flex-direction: column !important;
+            gap: 10px !important;
+            margin-bottom: 18px !important;
+          }
+
+          .page-eyebrow { font-size: 10px !important; }
+          .page-title   { font-size: 20px !important; }
+
+          .hd-actions {
+            width: 100%;
+            display: flex;
+            gap: 8px;
+          }
+
+          /* Hide export label, keep icon */
+          .btn-label { display: none; }
+          .btn-export {
+            padding: 7px 10px !important;
+            min-width: unset !important;
+          }
+
+          .btn-new {
+            flex: 1;
+            justify-content: center !important;
+          }
+
+          /* Stats: 2 columns stacked, smaller */
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
+          }
+
+          /* Patents: 1 column */
+          .patents-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          /* Section header */
+          .sec-hd {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px;
+            padding: 12px 0 !important;
+          }
+
+          .sec-hd-right {
+            align-self: flex-end;
+          }
+
+          .sec-title { font-size: 13px !important; }
+          .sec-eye   { font-size: 9px !important; }
+
+          /* Weekly card */
+          .weekly-card { max-width: 100%; }
+          .pcard-title { font-size: 14px !important; }
         }
-        .animate-delay-1 { animation-delay: 0.1s; opacity: 0; }
-        .animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
-        .animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
-        .animate-delay-4 { animation-delay: 0.4s; opacity: 0; }
-        .shimmer-effect {
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.8),
-            transparent
-          );
-          background-size: 1000px 100%;
-          animation: shimmer 3s infinite;
+
+        /* ════════════════════════════════════════
+           TINY MOBILE  < 380px
+        ════════════════════════════════════════ */
+        @media (max-width: 379px) {
+          .stats-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+          }
+
+          .page-title { font-size: 18px !important; }
+
+          .dash-content {
+            padding: 12px 10px 32px !important;
+          }
+
+          .topnav {
+            padding: 0 10px !important;
+          }
         }
       `}</style>
 
-      <div className="max-w-400 mx-auto space-y-10">
-
-        {/* Header with gradient text */}
-       <div className="animate-fadeInUp relative">
-  <style>{`
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-10px) rotate(5deg); }
-    }
-    @keyframes grid-scan {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
-    }
-    @keyframes shimmer-slide {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-    .grid-dot-1 { animation: grid-scan 2s ease-in-out 0s infinite; }
-    .grid-dot-2 { animation: grid-scan 2s ease-in-out 0.3s infinite; }
-    .grid-dot-3 { animation: grid-scan 2s ease-in-out 0.6s infinite; }
-    .grid-dot-4 { animation: grid-scan 2s ease-in-out 0.9s infinite; }
-    .grid-dot-5 { animation: grid-scan 2s ease-in-out 1.2s infinite; }
-    .grid-dot-6 { animation: grid-scan 2s ease-in-out 1.5s infinite; }
-  `}</style>
-  
-  {/* Enhanced gradient orbs */}
-  <div className="absolute -top-10 -left-10 w-40 h-40 bg-linear-to-br from-blue-400/20 via-indigo-500/20 to-purple-600/20 rounded-full blur-3xl animate-pulse"></div>
-  <div className="absolute -top-5 -right-5 w-32 h-32 bg-linear-to-br from-purple-400/20 via-pink-500/20 to-blue-600/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-  
-  {/* Main container with glassmorphism */}
-  <div className="relative bg-linear-to-br from-white/60 via-white/80 to-white/60 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/40 overflow-hidden">
-    {/* Shimmer effect */}
-    <div className="absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent" style={{ animation: 'shimmer-slide 3s ease-in-out infinite' }}></div>
-    </div>
-    
-    <div className="relative flex items-center gap-4 mb-3">
-      {/* Animated AI Grid Icon */}
-      <div className="relative" style={{ animation: 'float 3s ease-in-out infinite' }}>
-        <div className="absolute inset-0 bg-linear-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-xl blur-md opacity-50"></div>
-        <div className="relative w-14 h-14 bg-linear-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-          <div className="grid grid-cols-3 gap-0.5 p-1">
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-1"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-2"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-3"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-4"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-5"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-6"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-1"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-2"></div>
-            <div className="w-2 h-2 bg-white/90 rounded-sm grid-dot-3"></div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Title Section */}
-      <div className="flex-1">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-10 bg-linear-to-b from-blue-500 via-indigo-600 to-purple-600 rounded-full shadow-lg"></div>
-            <h1 className="text-4xl font-black bg-linear-to-r from-slate-800 via-blue-700 to-indigo-800 bg-clip-text text-transparent">
-               Dashboard
-            </h1>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="h-5 w-5 text-blue-600 animate-pulse" />
-            <Sparkles className="h-4 w-4 text-indigo-500 animate-pulse" style={{ animationDelay: '0.3s' }} />
-            <Sparkles className="h-3 w-3 text-purple-600 animate-pulse" style={{ animationDelay: '0.6s' }} />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 ml-3">
-          <div className="h-0.5 w-16 bg-linear-to-r from-blue-500 via-indigo-600 to-purple-600 rounded-full"></div>
-          <p className="text-slate-600 text-sm font-medium">
-            Manage your patent analysis projects and view recent activity
-          </p>
-        </div>
-      </div>
-    </div>
-    
-    {/* Bottom accent line */}
-    <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-40"></div>
-  </div>
-</div>
-
-        {/* Start New Analysis - Enhanced */}
-        <div className="animate-fadeInUp animate-delay-1 group relative overflow-hidden bg-linear-to-br from-[#191970] via-[#2e3a8c] to-[#191970] rounded-2xl p-8 shadow-2xl border border-white/10">
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            {[...Array(15)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-1 h-1 bg-white/30 rounded-full"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animation: `float ${3 + Math.random() * 3}s ease-in-out infinite`,
-                  animationDelay: `${Math.random() * 2}s`
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Gradient overlay on hover */}
-          <div className="absolute inset-0 bg-linear-to-r from-[#C9A94D]/0 via-[#C9A94D]/10 to-[#C9A94D]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-          <div className="relative z-10 flex justify-between items-center flex-wrap gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-6 w-6 text-[#C9A94D]" />
-                <h2 className="text-2xl font-bold text-white">Start New Analysis</h2>
-              </div>
-              <p className="text-white/80 text-sm max-w-md">
-                Upload a patent or portfolio to begin comprehensive infringement analysis powered by AI
-              </p>
-            </div>
-
-            <div className="flex gap-3 flex-wrap">
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="group/btn relative bg-linear-to-r from-[#C9A94D] to-[#FFD700] text-[#191970] px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
-                <Plus size={18} className="relative z-10" />
-                <span className="relative z-10">New Single Patent</span>
-              </button>
-
-              <button className="group/btn relative border-2 border-white/30 px-6 py-3 rounded-xl font-semibold flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/50 hover:scale-105 transition-all duration-300">
-                <FileText size={18} />
-                <span>Upload Portfolio</span>
-              </button>
-
-              <button className="group/btn relative border-2 border-white/30 px-6 py-3 rounded-xl font-semibold flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 hover:border-white/50 hover:scale-105 transition-all duration-300">
-                <Search size={18} />
-                <span>Search by ID</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="Active Scans"
-            value={activePatents.length}
-            subtitle="This week"
-            icon={<Search />}
-            color="blue"
-          />
-          <StatCard
-            title="Patents Analyzed"
-            value={state.patents.length}
-            subtitle="Total"
-            icon={<FileText />}
-            color="purple"
-          />
-          <StatCard
-            title="High Risk Matches"
-            value={0}
-            subtitle="Requires attention"
-            icon={<AlertTriangle />}
-            color="yellow"
-          />
-          <StatCard
-            title="Cleared Patents"
-            value={closedPatents.length}
-            subtitle="No infringement"
-            icon={<CheckCircle />}
-            color="green"
-          />
-        </div>
-        
-        {/* Recent Projects */}
-        <div className="animate-fadeInUp animate-delay-3">
-          <div className="group relative mb-6">
-  {/* Animated gradient background */}
-  <div className="absolute -inset-0.5 bg-linear-to-r from-blue-500/30 via-indigo-600/30 to-purple-600/30 rounded-2xl blur opacity-40 group-hover:opacity-70 transition-opacity duration-500 animate-pulse"></div>
-  
-  <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-blue-200/40 overflow-hidden">
-    {/* Decorative elements */}
-    <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-blue-400/10 to-indigo-600/10 rounded-full blur-3xl"></div>
-    <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-linear-to-tr from-indigo-500/10 to-purple-600/10 rounded-full blur-2xl"></div>
-    
-    {/* Animated corner accent */}
-    <div className="absolute top-0 left-0 w-16 h-16">
-      <div className="absolute top-0 left-0 w-1 h-8 bg-linear-to-b from-blue-500 to-transparent rounded-full"></div>
-      <div className="absolute top-0 left-0 w-8 h-1 bg-linear-to-r from-blue-500 to-transparent rounded-full"></div>
-    </div>
-    
-    <div className="relative z-10 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        {/* Animated icon badge */}
-        <div className="relative">
-  <style>{`
-    @keyframes rotate-grid { 
-      0% { transform: rotate(0deg) scale(1); }
-      50% { transform: rotate(180deg) scale(1.1); }
-      100% { transform: rotate(360deg) scale(1); }
-    }
-  `}</style>
-  <div className="absolute inset-0 bg-linear-to-br from-sky-400 via-blue-500 to-indigo-600 rounded-xl blur-md opacity-50"></div>
-  <div className="relative w-12 h-12 bg-linear-to-br from-sky-400 via-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-    <div className="grid grid-cols-3 gap-1 p-1.5" style={{ animation: 'rotate-grid 4s ease-in-out infinite' }}>
-      <div className="w-2 h-2 bg-white/90 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/70 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/90 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/70 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/90 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/70 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/90 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/70 rounded-full"></div>
-      <div className="w-2 h-2 bg-white/90 rounded-full"></div>
-    </div>
-  </div>
-</div>
-        
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-xs uppercase tracking-widest font-bold text-slate-600">Portfolio</span>
-          </div>
-          <h2 className="text-2xl font-black bg-linear-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-            Recent Projects
-          </h2>
-        </div>
-      </div>
-      
-      {/* Premium gradient button */}
-      <button className="group/btn relative overflow-hidden">
-        {/* Button glow */}
-        <div className="absolute -inset-1 bg-linear-to-r from-blue-500 via-indigo-600 to-purple-600 rounded-xl blur-md opacity-50 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
-        
-        {/* Button content */}
-        <div className="relative px-6 py-3 bg-linear-to-r from-blue-500 via-indigo-600 to-purple-600 rounded-xl font-bold text-white shadow-lg flex items-center gap-2 transform group-hover/btn:scale-105 transition-all duration-300">
-          <span className="relative z-10">View All</span>
-          <ArrowRight className="relative z-10 h-4 w-4 group-hover/btn:translate-x-1 transition-transform duration-300" />
-          
-          {/* Shine effect */}
-          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700"></div>
-          
-          {/* Inner gradient overlay on hover */}
-          <div className="absolute inset-0 bg-linear-to-br from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-        </div>
-      </button>
-    </div>
-    
-    {/* Bottom gradient accent */}
-    <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
-    
-    {/* Shine sweep across entire container */}
-    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-linear-to-r from-transparent via-white/10 to-transparent"></div>
-  </div>
-</div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {mockPatents.map((patent, index) => (
-              <div
-                key={patent.id}
-                className="animate-fadeInUp"
-                style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
-              >
-                <ProjectCard {...patent} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Weekly Search Results */}
-        <div className="animate-fadeInUp animate-delay-4">
-          <div className="group relative mb-6">
-  {/* Animated gradient background */}
-  <div className="absolute -inset-0.5 bg-linear-to-r from-emerald-500/30 via-teal-600/30 to-cyan-600/30 rounded-2xl blur opacity-40 group-hover:opacity-70 transition-opacity duration-500 animate-pulse"></div>
-  
-  <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-emerald-200/40 overflow-hidden">
-    {/* Decorative elements */}
-    <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-emerald-400/10 to-teal-600/10 rounded-full blur-3xl"></div>
-    <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-linear-to-tr from-teal-500/10 to-cyan-600/10 rounded-full blur-2xl"></div>
-    
-    {/* Animated corner accent */}
-    <div className="absolute top-0 left-0 w-16 h-16">
-      <div className="absolute top-0 left-0 w-1 h-8 bg-linear-to-b from-emerald-500 to-transparent rounded-full"></div>
-      <div className="absolute top-0 left-0 w-8 h-1 bg-linear-to-r from-emerald-500 to-transparent rounded-full"></div>
-    </div>
-    
-    <div className="relative z-10 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        {/* Animated icon badge */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-linear-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-xl blur-md opacity-50"></div>
-          <div className="relative w-12 h-12 bg-linear-to-br from-emerald-500 via-teal-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-transform duration-300">
-            <div className="w-3 h-3 bg-white rounded-full"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white/60 rounded-full animate-ping"></div>
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-            <span className="text-xs uppercase tracking-widest font-bold text-slate-600">Automated Monitoring</span>
-          </div>
-          <h2 className="text-2xl font-black bg-linear-to-r from-emerald-700 via-teal-700 to-cyan-700 bg-clip-text text-transparent">
-            Weekly Search Results
-          </h2>
-        </div>
-      </div>
-    </div>
-    
-    {/* Bottom gradient accent */}
-    <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-transparent via-emerald-500 to-transparent opacity-50"></div>
-    
-    {/* Shine sweep across entire container */}
-    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-linear-to-r from-transparent via-white/10 to-transparent"></div>
-  </div>
-</div>
-
-          <div className="relative group">
-            <div className="absolute inset-0 bg-linear-to-r from-[#C9A94D]/20 to-[#191970]/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <WeeklySearchCard
-              title="Automated VGR Monitoring"
-              statusText="Last scan: Loading..."
-              description="Weekly automated scans monitor competitor filings and industry changes relevant to your portfolio."
-              badge="0 new results"
-            />
-          </div>
-        </div>
-
-      </div>
-
-      {/* Modal for New Patent */}
       <ProjectModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -410,6 +667,4 @@ const DashboardPage = () => {
       />
     </div>
   );
-};
-
-export default DashboardPage;
+}

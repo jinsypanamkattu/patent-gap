@@ -1,10 +1,9 @@
-import { useContext } from 'react';
-import { StoreContext } from '../store/StoreProvider';
+import { useSelector, useDispatch } from "react-redux";
 
 export const useStore = () => {
-  const context = useContext(StoreContext);
-  if (!context) {
-    throw new Error('useStore must be used within StoreProvider');
-  }
-  return context;
+  const auth = useSelector((state) => state.auth);
+  const patents = useSelector((state) => state.patents);
+  const ui = useSelector((state) => state.ui);
+  const dispatch = useDispatch();
+  return { auth, patents, ui, dispatch };
 };

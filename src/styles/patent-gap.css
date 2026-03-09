@@ -620,6 +620,7 @@ select.form-input   { appearance: none; cursor: pointer; }
   .dash-content { padding: 18px 16px 48px; }
   .topnav { padding: 0 16px; gap: 8px; }
   .tn-center, .tn-sep, .tn-sub { display: none; }
+  .nav-actions .nav-btn-dark { display: none; }
 }
 @media (max-width: 640px) {
   .cards-grid { grid-template-columns: 1fr; }
@@ -628,8 +629,23 @@ select.form-input   { appearance: none; cursor: pointer; }
   .hd-actions { width: 100%; }
   .btn-export, .btn-new { flex: 1; justify-content: center; }
   .form-card  { padding: 28px 22px; }
+  .hero-badge span {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .hero-badge {
+    padding: 5px 9px;
+  }
 }
 @media (max-width: 420px) {
   .stat-grid { grid-template-columns: 1fr; }
   .stat-num  { font-size: 28px; }
+  .hero-badge span {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+  .hero-badge {
+    padding: 4px 9px;
+  }
+  
 }

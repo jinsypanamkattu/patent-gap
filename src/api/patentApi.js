@@ -1,126 +1,137 @@
 import axiosInstance from './axiosConfig';
 
 export const patentApi = {
-  // Get all patents for logged-in user
-  getAllPatents: async () => {
-    try {
-      const response = await axiosInstance.get('/patents');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch patents' };
-    }
-  },
 
-  // Get single patent by ID
-  getPatentById: async (patentId) => {
-    try {
-      const response = await axiosInstance.get(`/patents/${patentId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch patent details' };
-    }
-  },
-
-  // Get active patents
-  getActivePatents: async () => {
-    try {
-      const response = await axiosInstance.get('/patents?status=active');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch active patents' };
-    }
-  },
-
-  // Get closed patents
-  getClosedPatents: async () => {
-    try {
-      const response = await axiosInstance.get('/patents?status=closed');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch closed patents' };
-    }
-  },
-
-  // Create new patent
-  createPatent: async (patentData) => {
-    try {
-      const response = await axiosInstance.post('/patents', patentData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to create patent' };
-    }
-  },
-
-  // Update patent
-  updatePatent: async (patentId, patentData) => {
-    try {
-      const response = await axiosInstance.put(`/patents/${patentId}`, patentData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to update patent' };
-    }
-  },
-
-  // Delete patent
-  deletePatent: async (patentId) => {
-    try {
-      const response = await axiosInstance.delete(`/patents/${patentId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to delete patent' };
-    }
-  },
-
-  // Get all cases
   getAllCases: async () => {
     try {
-      const response = await axiosInstance.get('/cases');
-      return response.data;
+      const { data } = await axiosInstance.get('/all-cases');
+      return data.cases || [];
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch cases' };
+      throw { message: error.message || 'Failed to fetch cases' };
     }
   },
 
-  // Get case by ID
   getCaseById: async (caseId) => {
     try {
-      const response = await axiosInstance.get(`/cases/${caseId}`);
-      return response.data;
+      const { data } = await axiosInstance.get(`/cases/${caseId}`);
+      return data.case;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch case details' };
+      throw { message: error.message || 'Failed to fetch case' };
     }
   },
 
-  // Upload patent document
-  uploadDocument: async (patentId, formData) => {
+  getInfringementChart: async (caseId) => {
     try {
-      const response = await axiosInstance.post(
-        `/patents/${patentId}/documents`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      return response.data;
+      const { data } = await axiosInstance.get(`/infringement-chart/${caseId}`);
+      return data.infringement_chart || null;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to upload document' };
+      throw { message: error.message || 'Failed to fetch infringement chart' };
     }
   },
 
-  // Download patent document
-  downloadDocument: async (patentId, documentId) => {
+  getStats: async (userId) => {
     try {
-      const response = await axiosInstance.get(
-        `/patents/${patentId}/documents/${documentId}`,
-        {
-          responseType: 'blob',
-        }
-      );
-      return response.data;
+      const { data } = await axiosInstance.get(`/stats?user_id=${userId}`);
+      return data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to download document' };
+      throw { message: error.message || 'Failed to fetch stats' };
+    }
+  },
+
+  fetchFromUspto: async (patentNumber) => {
+    try {
+      const { data } = await axiosInstance.post('/fetch-patent-from-uspto', { patentId: patentNumber });
+      if (!data.success) throw { message: data.message || 'Failed to fetch from USPTO' };
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to fetch from USPTO' };
+    }
+  },
+
+  createPatent: async (caseDetails) => {
+    try {
+      const { data } = await axiosInstance.post('/create-patent', caseDetails);
+      if (!data.case_id) throw { message: 'Failed to create case' };
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to create patent' };
+    }
+  },
+
+  generateDescription: async (caseId) => {
+    try {
+      const { data } = await axiosInstance.post(`/generate-patent-description/${caseId}`);
+      if (!data.success) throw { message: data.message || 'Failed to generate description' };
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to generate description' };
+    }
+  },
+
+  getClaims: async (caseId) => {
+    try {
+      const { data } = await axiosInstance.get(`/get-claims/${caseId}`);
+      if (!data.claims) throw { message: data.message || 'Failed to get claims' };
+      return data.claims;
+    } catch (error) {
+      throw { message: error.message || 'Failed to get claims' };
+    }
+  },
+
+  getInfringementAnalysis: async (caseId) => {
+    try {
+      const { data } = await axiosInstance.get(`/gemini-infringement-analysis/${caseId}`);
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to get infringement analysis' };
+    }
+  },
+
+  updateCase: async (caseId, updateData) => {
+    try {
+      const { data } = await axiosInstance.post(`/cases/${caseId}`, updateData);
+      if (!data.success) throw { message: data.message || 'Failed to update case' };
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to update case' };
+    }
+  },
+
+  deleteCase: async (caseId) => {
+    try {
+      const { data } = await axiosInstance.delete(`/cases/${caseId}`);
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to delete case' };
+    }
+  },
+
+  // ✅ From HTML: checkSamePatent() — POST /api/check-same-patent
+  checkSamePatent: async (caseTitle, infringementTitle) => {
+    try {
+      const { data } = await axiosInstance.post('/check-same-patent', {
+        case_title:         caseTitle,
+        infringement_title: infringementTitle,
+      });
+      if (!data.success) return false;
+      return data.same_as_patent || false;
+    } catch (error) {
+      console.warn('Same patent check failed:', error.message);
+      return false;
+    }
+  },
+
+  // ✅ From HTML: openDocument() — POST /api/proxy-document, returns blob
+  proxyDocument: async (documentUrl) => {
+    try {
+      const { data } = await axiosInstance.post(
+        '/proxy-document',
+        { document_url: documentUrl },
+        { responseType: 'blob' }
+      );
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to open document' };
     }
   },
 };

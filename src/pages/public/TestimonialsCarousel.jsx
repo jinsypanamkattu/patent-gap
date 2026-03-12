@@ -249,9 +249,7 @@ export default function TestimonialsCarousel() {
                   title={`${t.name} — ${t.firm}`}
                 >
                   <span className="tc-thumb-initials">{t.initials}</span>
-                  <span className="tc-thumb-tooltip">
-                    <strong>{t.name}</strong>
-                  </span>
+                  
                 </button>
               )
             })}
@@ -262,3 +260,4 @@ export default function TestimonialsCarousel() {
     </section>
   )
 }
+

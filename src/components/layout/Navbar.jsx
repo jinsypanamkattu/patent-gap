@@ -73,6 +73,7 @@ export default function Navbar() {
               <li><a href="#how-it-works">How It Works</a></li>
               <li><a href="#attorneys">Attorneys</a></li>
               <li><a href="#early-access">Early Access</a></li>
+               <li><a href="#testimonials">Testimonials</a></li>
             </>
           ) : (
             <>
@@ -80,6 +81,7 @@ export default function Navbar() {
               <li><Link to="/#how-it-works">How It Works</Link></li>
               <li><Link to="/#attorneys">Attorneys</Link></li>
               <li><Link to="/#early-access">Early Access</Link></li>
+               <li><a href="#testimonials">Testimonials</a></li>
             </>
           )}
         </ul>
@@ -134,6 +136,7 @@ export default function Navbar() {
             <a href="#how-it-works" className="mob-link" onClick={() => setMenuOpen(false)}>How It Works</a>
             <a href="#attorneys"    className="mob-link" onClick={() => setMenuOpen(false)}>Attorneys</a>
             <a href="#early-access" className="mob-link" onClick={() => setMenuOpen(false)}>Early Access</a>
+            <a href="#testimonials" className="mob-link" onClick={() => setMenuOpen(false)}>Testimonials</a>
           </>
         ) : (
           <>
@@ -141,6 +144,7 @@ export default function Navbar() {
             <Link to="/#how-it-works" className="mob-link">How It Works</Link>
             <Link to="/#attorneys"    className="mob-link">Attorneys</Link>
             <Link to="/#early-access" className="mob-link">Early Access</Link>
+            <Link to="/#testimonials" className="mob-link">Testimonials</Link>
           </>
         )}
 

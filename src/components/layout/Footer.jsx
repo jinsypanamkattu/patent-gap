@@ -11,7 +11,7 @@ export default function Footer() {
           </div>
           <div className="foot-links">
             <a href="mailto:contact@patentgap.ai">contact@patentgap.ai</a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <a href="https://www.linkedin.com/company/patent-gap-ai" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             <Link to="/contact">Contact Us</Link>
             <a href="#">Privacy Policy</a>
           </div>

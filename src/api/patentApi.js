@@ -101,6 +101,9 @@ getInfringementAnalysis: async (caseId, keywords, documentUrls, context) => {
     const payload = {
       keywords:      keywords,
       document_urls: documentUrls,
+      country:       'US',      // ← hardcoded for now, adjust as needed
+      claims:         [],        // ← backend likely requires this, even if empty
+      owners:         [],        // ← backend likely requires this, even if empty
       context:       context || '',   // ← backend likely requires this
     };
     console.log('📤 Sending to /similarity-analysis-live', JSON.stringify(payload, null, 2));

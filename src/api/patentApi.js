@@ -78,7 +78,7 @@ export const patentApi = {
     }
   },
 
-  getInfringementAnalysis: async (caseId) => {
+  /*getInfringementAnalysis: async (caseId) => {
     try {
       const { data } = await axiosInstance.get(`/gemini-infringement-analysis/${caseId}`);
       return data;
@@ -87,6 +87,30 @@ export const patentApi = {
     }
   },
 
+  getInfringementAnalysisLive: async (caseId) => {
+    try {
+      const { data } = await axiosInstance.get(`/similarity-analysis-live/${caseId}`);
+      return data;
+    } catch (error) {
+      throw { message: error.message || 'Failed to get infringement analysis' };
+    }
+  },*/
+
+getInfringementAnalysis: async (caseId, keywords, documentUrls, context) => {
+  try {
+    const payload = {
+      keywords:      keywords,
+      document_urls: documentUrls,
+      context:       context || '',   // ← backend likely requires this
+    };
+    console.log('📤 Sending to /similarity-analysis-live', JSON.stringify(payload, null, 2));
+    const { data } = await axiosInstance.post('/similarity-analysis-live', payload);
+    return data;
+  } catch (error) {
+    console.error('📛 Full error object:', error);
+    throw { message: error.message || 'Failed to get infringement analysis' };
+  }
+},
   updateCase: async (caseId, updateData) => {
     try {
       const { data } = await axiosInstance.post(`/cases/${caseId}`, updateData);

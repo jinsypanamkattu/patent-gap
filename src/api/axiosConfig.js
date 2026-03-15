@@ -2,7 +2,8 @@ import axios from 'axios';
 
 const axiosInstance = axios.create({
   baseURL: 'https://patent-gap-backend.onrender.com/api',
-  timeout: 60000,
+  timeout: 600000, // 10 minutes
+ // withCredentials: true,          // ← add this
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -31,7 +32,6 @@ axiosInstance.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
@@ -39,42 +39,58 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.log('💥 Raw error response:', error.response?.data);
-    console.log('💥 Error status:', error.response?.status);
-    console.log('💥 Error message:', error.response?.data?.message);
+    // ─── 1. Detailed diagnostics ────────────────────────────────────
+    if (error.response) {
+      // Server replied with a non-2xx status
+      console.log('💥 Response error status :', error.response.status);
+      console.log('💥 Response error data   :', JSON.stringify(error.response.data, null, 2));
+      console.log('💥 Response error headers:', error.response.headers);
+    } else if (error.request) {
+      // Request left the browser but no response came back (network/CORS/timeout)
+      console.error('📡 No response received');
+      console.error('   error.code    :', error.code);        // ERR_NETWORK | ECONNABORTED | ERR_CANCELED
+      console.error('   error.message :', error.message);
+      console.error('   baseURL       :', error.config?.baseURL);
+      console.error('   url           :', error.config?.url);
+      console.error('   full URL      :', (error.config?.baseURL || '') + (error.config?.url || ''));
+      console.error('   method        :', error.config?.method);
+      console.error('   timeout       :', error.config?.timeout);
+      console.error('   sent data     :', error.config?.data);
+    } else {
+      // Error was thrown before the request even left (bad config, etc.)
+      console.error('⚙️ Request setup error:', error.message);
+    }
 
+    // ─── 2. Auth-based redirects (only when server actually replied) ─
     if (error.response) {
       const isAuthEndpoint = AUTH_ENDPOINTS.some(ep =>
         error.config?.url?.includes(ep)
       );
-
       switch (error.response.status) {
         case 401:
           if (!isAuthEndpoint) {
-            // Only redirect on 401 for protected routes, not login/register
             localStorage.removeItem('session');
             window.location.href = '/login';
           }
           break;
-        case 403:
-          console.error('Forbidden: You do not have permission');
-          break;
-        case 404:
-          console.error('Not Found: Resource does not exist');
-          break;
-        case 500:
-          console.error('Server Error: Please try again later');
-          break;
-        default:
-          console.error('An error occurred:', error.response?.data?.message);
+        case 403: console.error('Forbidden: You do not have permission'); break;
+        case 404: console.error('Not Found: Resource does not exist'); break;
+        case 500: console.error('Server Error: Please try again later'); break;
+        default:  console.error('An error occurred:', error.response?.data?.message);
       }
-    } else if (error.request) {
-      console.error('Network Error: Please check your connection');
-    } else {
-      console.error('Error:', error.message);
     }
 
-    return Promise.reject(error.response?.data || { message: 'Something went wrong' });
+    // ─── 3. Reject with a RICH error object (never loses context) ───
+    const enrichedError = {
+      message : error.response?.data?.message || error.message || 'Something went wrong',
+      code    : error.code,                        // ERR_NETWORK, ECONNABORTED, etc.
+      status  : error.response?.status,            // 404, 500, etc. (undefined if network error)
+      data    : error.response?.data,              // full backend payload
+      isNetwork: !error.response && !!error.request, // true = backend unreachable
+    };
+
+    console.error('🧨 Enriched error being rejected:', enrichedError);
+    return Promise.reject(enrichedError);
   }
 );
 

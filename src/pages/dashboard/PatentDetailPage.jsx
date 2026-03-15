@@ -248,11 +248,15 @@ const PatentDetailPage = () => {
 
   
 const beginSimilarityAnalysis = async () => {
-  const keywords = caseData?.keywords;
-  const urls     = caseData?.documents?.map(d => d.url);
-  const context  = caseData?.context || caseData?.description || '';
+  const keywords = caseData?.keywords       || [];
+  const urls     = caseData?.documents?.map(d => d.url) || [];
+  const context  = caseData?.context        || caseData?.description || '';
+  const country  = caseData?.countries?.[0] || 'US';
+  const claims   = caseData?.claims         || [];
+  // owners = companies that own competing patents
+  const owners = caseData?.inventors || caseData?.companies || [];
 
-  console.log('🔍 Analysis payload:', { caseId, keywords, document_urls: urls, context });
+  console.log('🔍 Analysis payload:', { keywords, document_urls: urls, context, country, claims, owners });
 
   if (!keywords?.length || !urls?.length) {
     alert('Cannot run analysis: missing keywords or documents.');
@@ -263,21 +267,23 @@ const beginSimilarityAnalysis = async () => {
   setAnalysisStatus('infringement');
 
   try {
-    const analysisData  = await patentApi.getInfringementAnalysis(caseId, keywords, urls, context);
+    const analysisData  = await patentApi.getInfringementAnalysis(
+      caseId, keywords, urls, context, country, claims, owners
+    );
     const infringements = analysisData.similar_infringements || [];
-    const claims        = analysisData.claims || [];
+    const newClaims     = analysisData.claims || [];
 
-    await patentApi.updateCase(caseId, { infringements, claims });
+    await patentApi.updateCase(caseId, { infringements, claims: newClaims });
 
     let claimsChart = {};
-    if (claims.length > 0) {
+    if (newClaims.length > 0) {
       try {
         claimsChart = await patentApi.getInfringementChart(caseId) || {};
       } catch (e) { console.warn('Claims chart unavailable', e); }
     }
 
-    setCaseData(prev => ({ ...prev, infringements, claims, claimsChart }));
-    dispatch(updatePatent({ _id: caseId, infringements, claims }));
+    setCaseData(prev => ({ ...prev, infringements, claims: newClaims, claimsChart }));
+    dispatch(updatePatent({ _id: caseId, infringements, claims: newClaims }));
 
   } catch (err) {
     console.error('Analysis failed:', err);

@@ -96,21 +96,44 @@ export const patentApi = {
     }
   },*/
 
-getInfringementAnalysis: async (caseId, keywords, documentUrls, context) => {
+/*getInfringementAnalysis: async (caseId, keywords, documentUrls, context, country, claims, owners) => {
   try {
+    // ── Debug: verify all args arrive ──
+    console.log('🔧 Raw args received:', { caseId, keywords, documentUrls, context, country, claims, owners });
+
     const payload = {
-      keywords:      keywords,
-      document_urls: documentUrls,
-      country:       'US',      // ← hardcoded for now, adjust as needed
-      claims:         [],        // ← backend likely requires this, even if empty
-      owners:         [],        // ← backend likely requires this, even if empty
-      context:       context || '',   // ← backend likely requires this
+      keywords:      keywords      || [],
+      document_urls: documentUrls  || [],
+      country:       country       || 'US',
+      context:       context       || '',
+      claims:        claims        || [],
+      owners:        owners        || [],
     };
+    console.log('📤 Final payload keys:', Object.keys(payload));
     console.log('📤 Sending to /similarity-analysis-live', JSON.stringify(payload, null, 2));
     const { data } = await axiosInstance.post('/similarity-analysis-live', payload);
     return data;
   } catch (error) {
     console.error('📛 Full error object:', error);
+    throw { message: error.message || 'Failed to get infringement analysis' };
+  }
+},*/
+getInfringementAnalysis: async (caseId, keywords, documentUrls, context, country, claims, owners) => {
+  const payload = {};
+  payload['keywords']      = keywords     || [];
+  payload['document_urls'] = documentUrls || [];
+  payload['country']       = country      || 'US';
+  payload['context']       = context      || '';
+  payload['claims']        = claims       || [];
+  payload['owners']        = owners       || [];
+
+  console.log('📤 Payload being sent:', JSON.stringify(payload));
+
+  try {
+    const { data } = await axiosInstance.post('/similarity-analysis-live', payload);
+    return data;
+  } catch (error) {
+    console.error('📛 Error:', error);
     throw { message: error.message || 'Failed to get infringement analysis' };
   }
 },

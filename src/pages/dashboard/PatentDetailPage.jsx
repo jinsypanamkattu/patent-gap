@@ -83,7 +83,6 @@ const normaliseMatch = (m) => {
   const isProduct = Boolean(m.product_id);
 
   if (isProduct) {
-    // ── Product infringement (e.g. Amazon listing) ──
     return {
       type:          'product',
       title:         m.product_name  || 'Untitled Product',
@@ -94,14 +93,12 @@ const normaliseMatch = (m) => {
       badge:         calculateOverallRisk(m.similar_claims),
       riskLevel:     calculateOverallRisk(m.similar_claims),
       similarClaims: m.similar_claims || [],
-      // product-specific extras
-      claims:        m.claims        || [],
+      claims:        m.claims        || m.similar_claims?.map(c => c.claim) || [],
       company:       null,
       matchedClaims: null,
       _entryId:      m.product_id,
     };
   } else {
-    // ── Patent infringement (e.g. freepatentsonline) ──
     return {
       type:          'patent',
       title:         m.entry_title   || m.title || 'Untitled',
@@ -112,10 +109,9 @@ const normaliseMatch = (m) => {
       badge:         calculateOverallRisk(m.similar_claims),
       riskLevel:     calculateOverallRisk(m.similar_claims),
       similarClaims: m.similar_claims || [],
-      // patent-specific extras
-      claims:        [],
+      claims:        m.similar_claims?.map(c => c.claim) || [],
       company:       m.company       || null,
-      matchedClaims: m.matchedClaims || null,
+      matchedClaims: m.similar_claims?.map(c => c.claim) || null,
       _entryId:      m.entry_id      || m.patent,
     };
   }
@@ -199,16 +195,8 @@ const PatentDetailPage = () => {
   const isProcessing   = (caseData?.status || '').toLowerCase().includes('processing');
   const claimsChart    = caseData?.claimsChart || {};
 
-  const displayClaims = caseData?.claims?.length > 0
-    ? caseData.claims
-    : [
-        `A system for ${title.toLowerCase()}, comprising:`,
-        '1. A processing unit configured to analyze patent data and identify relevant patterns.',
-        '2. A storage module for maintaining patent information and associated metadata.',
-        '3. An interface system for user interaction and data visualization.',
-        '4. A verification mechanism to ensure data integrity and accuracy.',
-        '5. A reporting module for generating comprehensive analysis reports.',
-      ];
+  // ── Only show real claims from the API — no hardcoded placeholders ──
+  const displayClaims = caseData?.claims || [];
 
   // ── Raw matches from API ──
   const realMatches = caseData?.infringements || [];
@@ -221,21 +209,31 @@ const PatentDetailPage = () => {
         console.log(`🔍 [${normalised.type.toUpperCase()}] Normalised match:`, normalised);
         return normalised;
       })
-    : [{ title: 'No matches found', id: '', score: 0, badge: 'low', riskLevel: 'low', type: 'patent', similarClaims: [], claims: [], company: null, matchedClaims: null }];
+    : [];
 
+  // ── Always fetch chart on load (not only when claims exist) ──
   const fetchCaseDetails = useCallback(async () => {
     if (!caseId) { setPageLoading(false); return; }
     try {
       setPageLoading(true);
       const c = await patentApi.getCaseById(caseId);
-      if (c?.claims?.length > 0) {
-        try {
-          const chart = await patentApi.getInfringementChart(caseId);
-          if (chart) c.claimsChart = chart;
-        } catch (e) { console.warn('Claims chart unavailable', e); }
-      }
+
+      // Always try to fetch chart regardless of whether claims exist
+      try {
+        const chart = await patentApi.getInfringementChart(caseId);
+        if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
+      } catch (e) { console.warn('Claims chart unavailable', e); }
+
       setCaseData(c);
-      console.log('🗂️ Full caseData:', JSON.stringify(c, null, 2));
+
+      // ─── Print full caseData ───────────────────────────────────
+      console.log('🗂️ caseData keys:', Object.keys(c));
+      console.log('🗂️ caseData.claims:', c?.claims);
+      console.log('🗂️ caseData.infringements:', c?.infringements);
+      console.log('🗂️ caseData.documents:', c?.documents);
+      console.log('🗂️ FULL caseData:', JSON.stringify(c, null, 2));
+      // ──────────────────────────────────────────────────────────
+
     } catch (err) {
       console.error('Error fetching case details:', err);
       setPageError(err?.message || 'Failed to load case');
@@ -246,84 +244,75 @@ const PatentDetailPage = () => {
 
   useEffect(() => { fetchCaseDetails(); }, [fetchCaseDetails]);
 
-  
-const beginSimilarityAnalysis = async () => {
-  const keywords = caseData?.keywords       || [];
-  const urls     = caseData?.documents?.map(d => d.url) || [];
-  const context  = caseData?.context        || caseData?.description || '';
-  const country  = caseData?.countries?.[0] || 'US';
-  // Pass actual claims — backend rejects empty array
-const claims = (caseData?.claims?.length > 0)
-  ? caseData.claims
-  : ['No claims available'];
-  // owners = companies that own competing patents
-  const owners = caseData?.inventors || caseData?.companies || [];
+  const beginSimilarityAnalysis = async () => {
+    const keywords = caseData?.keywords       || [];
+    const urls     = caseData?.documents?.map(d => d.url) || [];
+    const context  = caseData?.context        || caseData?.description || '';
+    const country  = caseData?.countries?.[0] || 'US';
+    const claims   = (caseData?.claims?.length > 0) ? caseData.claims : ['No claims available'];
+    const owners   = caseData?.inventors || caseData?.companies || [];
 
-  console.log('🔍 Analysis payload:', { keywords, document_urls: urls, context, country, claims, owners });
+    console.log('🔍 Analysis payload:', { keywords, document_urls: urls, context, country, claims, owners });
 
-  if (!keywords?.length || !urls?.length) {
-    alert('Cannot run analysis: missing keywords or documents.');
-    return;
-  }
-
-  setAnalysisLoading(true);
-  setAnalysisStatus('infringement');
-
-  try {
-    const analysisData  = await patentApi.getInfringementAnalysis(
-      caseId, keywords, urls, context, country, claims, owners
-    );
-    const infringements = analysisData.similar_infringements || [];
-    const newClaims     = analysisData.claims || [];
-
-    await patentApi.updateCase(caseId, { infringements, claims: newClaims });
-
-    let claimsChart = {};
-    if (newClaims.length > 0) {
-      try {
-        claimsChart = await patentApi.getInfringementChart(caseId) || {};
-      } catch (e) { console.warn('Claims chart unavailable', e); }
+    if (!keywords?.length || !urls?.length) {
+      alert('Cannot run analysis: missing keywords or documents.');
+      return;
     }
 
-    setCaseData(prev => ({ ...prev, infringements, claims: newClaims, claimsChart }));
-    dispatch(updatePatent({ _id: caseId, infringements, claims: newClaims }));
+    setAnalysisLoading(true);
+    setAnalysisStatus('infringement');
 
-  } catch (err) {
-  console.error('Analysis failed:', err);
+    try {
+      const analysisData  = await patentApi.getInfringementAnalysis(
+        caseId, keywords, urls, context, country, claims, owners
+      );
+      const infringements = analysisData.similar_infringements || [];
+      const newClaims     = analysisData.claims || [];
 
-  // ─── Detailed error breakdown ───────────────────────────────
-  if (err?.response) {
-    // Server responded with a non-2xx status
-    console.error('❌ Response error:', {
-      status:     err.response.status,
-      statusText: err.response.statusText,
-      data:       err.response.data,
-      headers:    err.response.headers,
-    });
-  } else if (err?.request) {
-    // Request was made but no response received (network error, CORS, timeout)
-    console.error('📡 No response received:', {
-      message:      err.message,       // e.g. "Network Error"
-      code:         err.code,          // e.g. "ERR_NETWORK", "ECONNABORTED"
-      url:          err.config?.url,
-      method:       err.config?.method,
-      baseURL:      err.config?.baseURL,
-      timeout:      err.config?.timeout,
-      requestData:  err.config?.data,
-    });
-  } else {
-    // Something went wrong setting up the request
-    console.error('⚙️ Request setup error:', err.message);
-  }
+      await patentApi.updateCase(caseId, { infringements, claims: newClaims });
 
-  const msg        = err?.response?.data?.message || err?.message || 'Unknown error';
-  const isRateLimit = msg.toLowerCase().includes('rate') || msg.includes('429');
-  alert(isRateLimit ? 'Rate limit hit, please wait.' : `Analysis failed: ${msg}`);
-} finally {
-    setAnalysisLoading(false);
-    setAnalysisStatus('idle');
-  }
-};
+      let claimsChart = {};
+      if (newClaims.length > 0) {
+        try {
+          claimsChart = await patentApi.getInfringementChart(caseId) || {};
+        } catch (e) { console.warn('Claims chart unavailable', e); }
+      }
+
+      setCaseData(prev => ({ ...prev, infringements, claims: newClaims, claimsChart }));
+      dispatch(updatePatent({ _id: caseId, infringements, claims: newClaims }));
+
+    } catch (err) {
+      console.error('Analysis failed:', err);
+
+      if (err?.response) {
+        console.error('❌ Response error:', {
+          status:     err.response.status,
+          statusText: err.response.statusText,
+          data:       err.response.data,
+          headers:    err.response.headers,
+        });
+      } else if (err?.request) {
+        console.error('📡 No response received:', {
+          message:     err.message,
+          code:        err.code,
+          url:         err.config?.url,
+          method:      err.config?.method,
+          baseURL:     err.config?.baseURL,
+          timeout:     err.config?.timeout,
+          requestData: err.config?.data,
+        });
+      } else {
+        console.error('⚙️ Request setup error:', err.message);
+      }
+
+      const msg         = err?.response?.data?.message || err?.message || 'Unknown error';
+      const isRateLimit = msg.toLowerCase().includes('rate') || msg.includes('429');
+      alert(isRateLimit ? 'Rate limit hit, please wait.' : `Analysis failed: ${msg}`);
+    } finally {
+      setAnalysisLoading(false);
+      setAnalysisStatus('idle');
+    }
+  };
 
   const exportCase = () => alert(`Exporting case for ${title}`);
 
@@ -640,7 +629,7 @@ const claims = (caseData?.claims?.length > 0)
             </div>
           </SectionCard>
 
-          {/* ── Claims ── */}
+          {/* ── Claims — only shown when real claims exist from the API ── */}
           {displayClaims.length > 0 && (
             <SectionCard title="Claims for Analysis" eyebrow="Patent Claims" icon={FileText}>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -661,7 +650,7 @@ const claims = (caseData?.claims?.length > 0)
             </SectionCard>
           )}
 
-          {/* ── Claims Chart ── */}
+          {/* ── Claims Chart — only shown when chart data exists ── */}
           {Object.keys(claimsChart).length > 0 && (
             <SectionCard title="Claims Chart" eyebrow="Analysis" icon={FileText}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -723,9 +712,9 @@ const claims = (caseData?.claims?.length > 0)
               </div>
             )}
 
-            {!analysisLoading && potentialMatches.length > 0 && (realMatches.length > 0 || projectData.matchesCount > 0) && (
+            {!analysisLoading && potentialMatches.length > 0 && realMatches.length > 0 && (
               <div className="cards-grid">
-                {potentialMatches.slice(0, matchesCount || potentialMatches.length).map((match, index) => {
+                {potentialMatches.map((match, index) => {
                   const isHigh         = match.riskLevel === 'high';
                   const isMedium       = match.riskLevel === 'medium';
                   const matchCardClass = isHigh ? 'expired' : isMedium ? 'abandoned' : 'patented';
@@ -746,7 +735,6 @@ const claims = (caseData?.claims?.length > 0)
                           {typeof match.badge === 'string' ? match.badge.charAt(0).toUpperCase() + match.badge.slice(1) : match.badge} Risk
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {/* Type pill — shows PATENT or PRODUCT */}
                           <span className="pd-type-pill" data-type={isProduct ? 'product' : 'patent'}>
                             {isProduct ? '🛒 Product' : '📄 Patent'}
                           </span>
@@ -772,19 +760,15 @@ const claims = (caseData?.claims?.length > 0)
 
                       <div className="pcard-num">
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/></svg>
-                        {/* Show product_id or entry_id clearly */}
                         {isProduct ? `Product: ${match.id}` : `Patent: ${match.id}`}
                       </div>
 
-                      
-                      {/* Company (patent only) */}
                       {match.company && (
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>
                           Company: {match.company}
                         </div>
                       )}
 
-                      {/* Product claims preview (product only) */}
                       {isProduct && match.claims?.length > 0 && (
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8, fontStyle: 'italic' }}>
                           "{match.claims[0].slice(0, 80)}…"
@@ -806,7 +790,6 @@ const claims = (caseData?.claims?.length > 0)
                         )}
                       </div>
 
-                      
                       <div className="pcard-foot">
                         <div className="pcard-time">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

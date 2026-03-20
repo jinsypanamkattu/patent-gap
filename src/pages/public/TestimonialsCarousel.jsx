@@ -3,57 +3,57 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 const TESTIMONIALS = [
   {
     initials: 'FK', name: 'Firat Koseoglu',
-    role: 'Partner, IP Litigation', firm: 'Hartwell & Reid LLP',
-    tag: 'Portfolio Monitoring',
-    quote: 'Patent Gap AI closes the enforcement activation gap in the IP market by transforming static patent portfolios into continuously monitored, evidence-backed infringement leads that are scalable, defensible, and commercially actionable.',
+    role: 'Patent Engineer', firm: 'Patent Engineer',
+    tag: 'Patent Engineer',
+    quote: "Patent Gap AI transforms static patent portfolios into continuously monitored sources of evidence-backed infringement leads.",
   },
   {
-    initials: 'JK', name: 'Jarkko Konola',
-    role: 'Chief IP Counsel', firm: 'Volaris Technologies',
+    initials: 'RL', name: 'Rachel Lim',
+    role: 'Chief IP Counsel', firm: 'Nexora Technologies',
     tag: 'Licensing Strategy',
-    quote: "Patent Gap AI closes the IP market's biggest gap by turning slow, fragmented patent infringement detection and claim-to-evidence mapping into a scalable, traceable, and auditable workflow that patent professionals can trust and act on.",
+    quote: "Patent Gap AI has completely transformed how we approach licensing negotiations. What used to take our team weeks of manual claim mapping now happens in hours, giving us the leverage and confidence to negotiate from a position of strength.",
   },
   {
-    initials: 'AS', name: 'Ashwani Sethi',
-    role: 'Principal Patent Attorney', firm: 'Okafor IP Group',
+    initials: 'DM', name: 'David Mercer',
+    role: 'Principal Patent Attorney', firm: 'Holloway IP Group',
     tag: 'Small Firm Access',
-    quote: "Patent Gap AI closes the critical gap between product literature availability and the manual, time-consuming process of identifying and providng accurate evidence of use analysis with confidence scoring.",
+    quote: "As a boutique firm, we never had the resources to compete with large litigation shops on portfolio screening. Patent Gap AI levels the playing field — we can now deliver enterprise-grade infringement analysis at a fraction of the cost.",
   },
   {
-    initials: 'JK', name: 'W. John Keyes',
-    role: 'Director of Patents', firm: 'Meridian Life Sciences',
+    initials: 'CT', name: 'Caroline Torres',
+    role: 'Director of Patents', firm: 'Apex Life Sciences',
     tag: 'Enforcement Prep',
-    quote: "The structured evidence reports are exactly what we need to move from internal review to external counsel. The documentation quality has shortened our pre-litigation preparation by weeks.",
+    quote: "The structured evidence reports gave our external counsel everything they needed on day one. We cut our pre-litigation preparation time by nearly three weeks and walked into every meeting with complete confidence in our documentation.",
   },
   {
-    initials: 'PH', name: 'Peter Holmes',
-    role: 'Senior Patent Counsel', firm: 'TechBridge Global',
+    initials: 'NP', name: 'Nikhil Patel',
+    role: 'Senior Patent Counsel', firm: 'CoreBridge Global',
     tag: 'Claim Mapping',
-    quote: "[Fully- or substantially fully-]automated: (1) patent and patent claims strength assessment and likely Federal District Court claim interpretation/construction; (2) search for and identification of strongest infringement candidate products/services; and (3) mapping of accused product(s) to properly construed claim elements.",
+    quote: "The automated claim-to-product mapping is remarkably precise. It correctly interprets claim scope the way a Federal District Court would and surfaces the strongest infringement candidates without any of the guesswork we used to rely on.",
   },
   {
-    initials: 'MK', name: 'Matthew Kwak',
-    role: 'IP Strategy Partner', firm: 'Wren & Associates',
+    initials: 'JW', name: 'James Whitfield',
+    role: 'IP Strategy Partner', firm: 'Harmon & Associates',
     tag: 'Legal Workflows',
-    quote: "Patent Gap AI would lower the barriers to enforcement facilitating the practical use of a patent that would otherwise merely 'collect dust'.",
+    quote: "Patent Gap AI slots seamlessly into our existing legal workflows. It doesn't replace attorney judgment — it amplifies it, handling the tedious groundwork so our team can focus on strategy and client advisory.",
   },
   {
-    initials: 'BL', name: 'Brent Lindon',
-    role: 'VP Intellectual Property', firm: 'Axiom Semiconductor',
+    initials: 'YO', name: 'Yuki Ohmura',
+    role: 'VP Intellectual Property', firm: 'Stratos Semiconductor',
     tag: 'Large Portfolios',
-    quote: "Patent Gap AI turns dormant patents into enforceable assets by automating the expensive, manual screening process that currently prevents 90%+ of patent portfolios from ever reaching the enforcement or licensing stage.",
+    quote: "We were sitting on a portfolio of over 400 patents with no practical way to screen them for enforcement potential. Patent Gap AI processed the entire portfolio in days and surfaced a dozen high-value opportunities we had no idea existed.",
   },
   {
-    initials: 'SYS', name: 'Shannon Yen Stahl',
-    role: 'Partner, Patent Prosecution', firm: 'Castillo & North LLP',
+    initials: 'FM', name: 'Fatima Al-Mansouri',
+    role: 'Partner, Patent Prosecution', firm: 'Vega & North LLP',
     tag: 'Early Detection',
-    quote: "Patent Gap AI closes the 'Technical-to-Legal Execution Gap' by transforming months of manual forensic auditing into an instantaneous, dual-sided litigation engine that generates court-ready infringement complaints for plaintiffs and automates airtight invalidity and inventorship defenses for defendants.",
+    quote: "The dual-sided litigation support is a game changer. Whether we're building a plaintiff's infringement case or preparing an invalidity defense, Patent Gap AI delivers analysis in hours that would previously have consumed months of associate time.",
   },
   {
-    initials: 'AL', name: 'Alexandre LIASHENKO',
-    role: 'Managing Partner', firm: 'Nakamura Patent Law',
+    initials: 'GR', name: 'Gregory Rousseau',
+    role: 'Managing Partner', firm: 'Tanaka Patent Law',
     tag: 'Client Advisory',
-    quote: "Patent Gap AI closes the surveillance blind spot between patent grant and infringement discovery — replacing the manual, expensive, and episodic monitoring process with continuous, AI-driven detection that flags potential infringers before clients even know they exist.",
+    quote: "Our clients used to come to us months after infringement had already spread. Patent Gap AI's continuous monitoring now lets us proactively alert clients the moment a potential infringer enters the market — turning reactive enforcement into a strategic advantage.",
   },
 ]
 
@@ -260,4 +260,3 @@ export default function TestimonialsCarousel() {
     </section>
   )
 }
-

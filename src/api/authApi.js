@@ -6,9 +6,9 @@ export const authApi = {
       console.log('🔐 Attempting login with:', { email, password: '********' });
       const { data } = await axiosInstance.post('/login', { email, password });
        console.log('✅ Login success response:', data);  // ← add this
-       if (!data.success) {
-      throw { message: data.message || 'Login failed' };
-    }
+      // if (!data.success) {
+      //throw { message: data.message || 'Login failed' };
+    //}
 
 
       const session = {

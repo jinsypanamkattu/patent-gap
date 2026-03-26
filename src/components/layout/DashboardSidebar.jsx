@@ -1,4 +1,6 @@
+
 import { Link, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'  // ← add this
 
 const NAV_ITEMS = [
   {
@@ -89,6 +91,24 @@ const NAV_ITEMS = [
 
 export default function DashboardSidebar({ activeItem, onItemClick, isOpen, onClose }) {
   const navigate = useNavigate()
+  const user     = useSelector((state) => state.auth.user)  // ← from Redux
+
+  const getInitials = (u) => {
+    if (!u) return '?'
+    if (u.name || u.full_name) {
+      const name  = u.name || u.full_name
+      const parts = name.trim().split(' ').filter(Boolean)
+      return parts.length >= 2
+        ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+        : parts[0].slice(0, 2).toUpperCase()
+    }
+    if (u.email) return u.email.slice(0, 2).toUpperCase()
+    return '?'
+  }
+
+  const displayName = user?.name  || user?.full_name  || user?.email || 'Unknown User'
+  const displayRole = user?.role  || user?.job_title  || user?.title || 'User'
+  const initials    = getInitials(user)
 
   const handleClick = (item) => {
     onItemClick(item.id)
@@ -148,10 +168,12 @@ export default function DashboardSidebar({ activeItem, onItemClick, isOpen, onCl
 
         <div className="sb-footer">
           <div className="sb-user">
-            <div className="sb-avatar">JD</div>
+            <div className="sb-avatar" title={displayName}>
+              {initials}
+            </div>
             <div>
-              <div className="sb-uname">Jane Doe</div>
-              <div className="sb-urole">IP Attorney</div>
+              <div className="sb-uname">{displayName}</div>
+              <div className="sb-urole">{displayRole}</div>
             </div>
           </div>
         </div>

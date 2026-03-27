@@ -92,13 +92,13 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
       {/* Body */}
       <div className="p-6 overflow-y-auto flex-1">
         {/* Security banner */}
-        <div className="flex items-start gap-3 p-4 mb-6 bg-[#191970]/5 border border-[#191970]/20 rounded-lg">
+        {/* <div className="flex items-start gap-3 p-4 mb-6 bg-[#191970]/5 border border-[#191970]/20 rounded-lg">
           <span className="text-xl mt-0.5">🛡️</span>
           <div>
             <h4 className="text-sm font-medium text-gray-900">Secure Upload</h4>
             <p className="text-xs text-gray-500">ISO/SOC2 Compliant. Your data is encrypted and secure.</p>
           </div>
-        </div>
+        </div> */}
 
         {/* Project Name */}
         <div className="mb-6">

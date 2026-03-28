@@ -69,31 +69,37 @@ export const useAuth = () => {
 };
 
   const handleRegister = async (name, email, password, company, payload) => {
-    try {
-      setLoading(true);
-      await authApi.register(name, email, password, company, payload);
+  try {
+    setLoading(true);
 
-      // ✅ Same pattern as handleLogin
-      const existingSession = JSON.parse(localStorage.getItem('session') || '{}');
-      const user = existingSession.user || { email, id: email };
+    const data = await authApi.register(name, email, password, company, payload);
 
-      localStorage.setItem('session', JSON.stringify({
-        ...existingSession,
-        user,
-        email: user.email,
-      }));
+    // ── Build user with photo_url so ProfilePage can display it immediately ──
+    const user = {
+      id:        data.user_id   || data.user?.id  || email,
+      email:     data.email     || data.user?.email || email,
+      photo_url: data.photo_url || null,   // ← now populated from fixed authApi
+      full_name: data.full_name || payload?.full_name || null,
+    };
 
-      dispatch(register(user));
-      await loadPatents();
-      return { success: true };
+    localStorage.setItem('session', JSON.stringify({
+      user,
+      email:   user.email,
+      user_id: user.id,
+      token:   data.token || null,
+    }));
 
-    } catch (error) {
-      setError(error.message || 'Registration failed');
-      return { success: false, error: error.message || 'Registration failed' };
-    } finally {
-      setLoading(false);
-    }
-  };
+    dispatch(register(user));
+    await loadPatents();
+    return { success: true };
+
+  } catch (error) {
+    setError(error.message || 'Registration failed');
+    return { success: false, error: error.message || 'Registration failed' };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLogout = async () => {
     try {

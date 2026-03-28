@@ -632,6 +632,7 @@ const SectionCard = ({ title, eyebrow, icon: Icon, children, actions }) => (
 // the normal completed-results grid.
 // ─────────────────────────────────────────────────────────────
 const MatchCard = ({ match, updatedAt, onSelect }) => {
+  
   const isHigh         = match.riskLevel === 'high';
   const isMedium       = match.riskLevel === 'medium';
   const matchCardClass = isHigh ? 'expired' : isMedium ? 'abandoned' : 'patented';
@@ -773,6 +774,8 @@ const PatentDetailPage = () => {
       })
     : [];
 
+    console.log('🃏 All potential matches:', JSON.stringify(potentialMatches, null, 2));
+
   /*const iaStatus      = String(infringementAnalysisStatus || '').toLowerCase();
   const iaIsCompleted = iaStatus === 'completed';
   const iaIsUnknown   = iaStatus === 'unknown' || iaStatus === 'none' || iaStatus === '';
@@ -794,14 +797,25 @@ const PatentDetailPage = () => {
     const iaIsUnknown  = iaStatus === 'unknown' || iaStatus === 'none' || iaStatus === '';
     const iaIsInFlight = !iaIsCompleted && !iaIsUnknown;
 
-  const loadCase = useCallback(async () => {
+  /*const loadCase = useCallback(async () => {
     const c = await patentApi.getCaseById(caseId);
     try {
       const chart = await patentApi.getInfringementChart(caseId);
       if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
     } catch (e) { console.warn('Claims chart unavailable', e); }
     return c;
-  }, [caseId]);
+  }, [caseId]);*/
+        const loadCase = useCallback(async () => {
+        const c = await patentApi.getCaseById(caseId);
+        // Only fetch chart if infringements already exist
+        if (c?.infringements?.length > 0 && c?.claims?.length > 0) {
+          try {
+            const chart = await patentApi.getInfringementChart(caseId);
+            if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
+          } catch (e) { /* chart not ready yet */ }
+        }
+        return c;
+      }, [caseId]);
 
   const fetchCaseDetails = useCallback(async () => {
     if (!caseId) { setPageLoading(false); return; }
@@ -954,7 +968,7 @@ useEffect(() => {
 
       const msg         = err?.response?.data?.message || err?.message || 'Unknown error';
       const isRateLimit = msg.toLowerCase().includes('rate') || msg.includes('429');
-      alert(isRateLimit ? 'Rate limit hit, please wait.' : `Analysis failed: ${msg}`);
+      //alert(isRateLimit ? 'Rate limit hit, please wait.' : `Analysis failed: ${msg}`);
     } finally {
       setAnalysisLoading(false);
       setAnalysisStatus('idle');
@@ -1087,28 +1101,35 @@ useEffect(() => {
                 <Download size={14} />
                 <span className="pd-btn-label">Export</span>
               </button>
-              <button
-                className="btn-new"
-                onClick={beginSimilarityAnalysis}
-                disabled={analysisLoading}
-                style={{ opacity: analysisLoading ? 0.7 : 1 }}
-              >
-                {analysisLoading ? (
-                  <>
-                    <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span className="pd-btn-label">
-                      {analysisStatus === 'claims' ? 'Isolating…' : 'Matching…'}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <span className="pd-btn-label">Run Analysis</span>
-                  </>
-                )}
-              </button>
+
+
+              {!iaIsInFlight && (
+            <button
+              className="btn-new"
+              onClick={beginSimilarityAnalysis}
+              disabled={analysisLoading}
+              style={{ opacity: analysisLoading ? 0.7 : 1 }}
+            >
+              {analysisLoading ? (
+                <>
+                  <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span className="pd-btn-label">
+                    {analysisStatus === 'claims' ? 'Isolating…' : 'Matching…'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                              </svg>
+                  <span className="pd-btn-label">Run Analysis</span>
+                </>
+              )}
+            </button>
+          )}
+
+
+
             </div>
           </div>
 
@@ -1301,7 +1322,7 @@ useEffect(() => {
               <div className="sec-hd-left">
                 <div className="sec-ico">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0-3.42 0z"/>
+                    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                   </svg>
                 </div>
@@ -1311,9 +1332,12 @@ useEffect(() => {
                 </div>
               </div>
               <div className="sec-hd-right">
-                <button className="btn-refresh" onClick={beginSimilarityAnalysis} title="Re-run analysis">
-                  <RefreshCw size={13} style={{ animation: analysisLoading ? 'spin 1s linear infinite' : 'none' }} />
-                </button>
+                {!iaIsInFlight && (
+                    <button className="btn-refresh" onClick={beginSimilarityAnalysis} title="Re-run analysis">
+                      <RefreshCw size={13} style={{ animation: analysisLoading ? 'spin 1s linear infinite' : 'none' }} />
+                    </button>
+                  )}
+                  
                 <span className="pcard-num" style={{ margin: 0, color: matchesCount > 0 ? 'var(--amber)' : 'var(--accent)', background: matchesCount > 0 ? 'var(--amber-soft)' : 'var(--acc-soft)' }}>
                   {matchesCount} match{matchesCount !== 1 ? 'es' : ''}
                 </span>
@@ -1331,19 +1355,63 @@ useEffect(() => {
         </div>
       )}
 
-      {/* ✅ REMOVE CASE 2 entirely — delete this whole block */}
+    
+
+    {/* ── CASE 2: analysis is in-flight on the backend (not user triggered) ── */}
+    {!analysisLoading && iaIsInFlight && (
+      <div className="pd-card-body" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '24px', marginBottom: 16 }}>
+        <div style={{
+          width: 32, height: 32, flexShrink: 0,
+          border: '3px solid var(--rule2)',
+          borderTop: '3px solid var(--amber, #b45309)',
+          borderRadius: '50%',
+          animation: 'spin 1.2s linear infinite',
+        }} />
+        <div>
+          <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', margin: '0 0 3px' }}>
+            Analysis in progress
+          </p>
+          <p style={{
+            fontFamily: "'Inconsolata', monospace",
+            fontSize: 11, color: 'var(--ink3)', margin: 0,
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+          }}>
+            Status: {infringementAnalysisStatus}
+          </p>
+        </div>
+        <span style={{
+          marginLeft: 'auto', flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: "'Inconsolata', monospace",
+          fontSize: 10, fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.10em',
+          padding: '4px 10px', borderRadius: 5,
+          background: 'var(--amber-soft, rgba(251,191,36,0.12))',
+          color: 'var(--amber, #b45309)',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'var(--amber, #b45309)',
+            animation: 'ia-pulse 1.4s ease-in-out infinite',
+          }} />
+          Processing
+        </span>
+      </div>
+    )}
+
+
       {/* {!analysisLoading && iaIsInFlight && ( ... )} */}
 
       {/* ── CASE 3: no matches, not loading ── */}
-      {shouldShowEmpty && (
-        <div className="pd-card-body pd-no-matches">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 20 }}>✅</span>
-            <p style={{ fontSize: 13.5, color: 'var(--ink2)', margin: 0 }}>No potential infringement matches found.</p>
-          </div>
-          <button className="btn-new" onClick={beginSimilarityAnalysis}>Start Analysis</button>
+      {shouldShowEmpty && !iaIsInFlight && (
+      <div className="pd-card-body pd-no-matches">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>✅</span>
+          <p style={{ fontSize: 13.5, color: 'var(--ink2)', margin: 0 }}>No potential infringement matches found.</p>
         </div>
-      )}
+        <button className="btn-new" onClick={beginSimilarityAnalysis}>Start Analysis</button>
+      </div>
+    )}
 
       {/* ── CASE 4: show matches — always, regardless of analysis status ── */}
       {shouldShowMatches && (

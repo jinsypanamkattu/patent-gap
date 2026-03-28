@@ -72,6 +72,7 @@ const ProjectCard = ({
   documentsCount,
   progress = 0,
   infringementAnalysisStatus = 'unknown',
+  riskLevel = 'low',
 }) => {
   const navigate = useNavigate();
 
@@ -106,6 +107,18 @@ const ProjectCard = ({
           {badgeLabel}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {riskLevel === 'high' && (
+          <span className="pcard-badge expired" style={{ marginLeft: 'auto' }}>
+            <span className="pcard-dot" />
+            High Risk
+          </span>
+        )}
+        {riskLevel === 'medium' && (
+          <span className="pcard-badge abandoned">
+            <span className="pcard-dot" />
+            Med Risk
+          </span>
+        )}
           <AnalysisStatusIcon status={infringementAnalysisStatus} />
           <button
             className="card-ext"
@@ -131,15 +144,31 @@ const ProjectCard = ({
       </div>
 
       <div className="pcard-progress">
-        <div className="prog-track">
-          <div className={`prog-fill ${fillClass}`} style={{ width: `${pct}%` }} />
+      {pct > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{
+            fontFamily: "'Inconsolata', monospace", fontSize: 9,
+            textTransform: 'uppercase', letterSpacing: '0.10em', color: 'var(--ink3)',
+          }}>
+            Overlap Score
+          </span>
+          <span style={{
+            fontFamily: "'Libre Baskerville', serif", fontSize: 13, fontWeight: 700,
+            color: isExpired ? 'var(--red)' : isAbandoned ? 'var(--ink3)' : 'var(--accent)',
+          }}>
+            {pct}%
+          </span>
         </div>
-        <div className="prog-dots" style={{ color: dotColor }}>
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="pdot" style={{ opacity: i < filledDots ? 0.35 : 0.1 }} />
-          ))}
-        </div>
+      )}
+      <div className="prog-track">
+        <div className={`prog-fill ${fillClass}`} style={{ width: `${pct}%` }} />
       </div>
+      <div className="prog-dots" style={{ color: dotColor }}>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="pdot" style={{ opacity: i < filledDots ? 0.35 : 0.1 }} />
+        ))}
+      </div>
+    </div>
 
       <div className="pcard-foot">
         <div className="pcard-time">

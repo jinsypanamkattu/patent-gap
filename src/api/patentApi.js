@@ -68,6 +68,7 @@ export const patentApi = {
 
   createPatent: async (caseDetails) => {
     try {
+      console.log('📋 createPatent payload:', caseDetails);
       const { data } = await axiosInstance.post('/create-patent', caseDetails);
       if (!data.case_id) throw new Error('Failed to create case');
       return data;

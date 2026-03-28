@@ -9,10 +9,19 @@ import DashboardSidebar from '../../components/layout/DashboardSidebar';
 export default function ProfilePage() {
   const authUser   = useSelector((state) => state.auth.user);   // basic auth (email)
   //const { userProfile } = useUser(); 
-  const { userProfile, loadUserProfile } = useUser();                             // ✅ full profile from API
+  const { userProfile, loadUserProfile } = useUser();        
+  
+                       // ✅ full profile from API
 
   // ✅ Merge — prefer full profile, fall back to auth user
   const user = userProfile || authUser;
+  const [photoFile, setPhotoFile]   = useState(null);
+  //const [photoPreview, setPhotoPreview] = useState(user?.photo_url || null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+
+  useEffect(() => {
+    if (user?.photo_url) setPhotoPreview(user.photo_url);
+  }, [user?.photo_url]);
 
     // ── Debug: print full user object whenever it changes ──
     /*useEffect(() => {
@@ -106,6 +115,14 @@ export default function ProfilePage() {
     e.preventDefault();
     setProfileSaving(true);
     try {
+      let photo_base64 = null;
+      if (photoFile) {
+        photo_base64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(photoFile);
+        });
+      }
       const payload = {
         title:     profile.title,
         full_name: profile.full_name,
@@ -113,6 +130,7 @@ export default function ProfilePage() {
         phone:     profile.phone     || null,
         company:   profile.company   || null,
         job_title: profile.job_title,
+        ...(photo_base64 ? { photo_url: photo_base64 } : {})  ,
         address: {
           line1:       profile.address_line1 || null,
           line2:       profile.address_line2 || null,
@@ -120,6 +138,7 @@ export default function ProfilePage() {
           state:       profile.state         || null,
           postal_code: profile.postal_code   || null,
           country:     profile.country       || null,
+        
         },
       };
       console.log('📝 Saving profile:', payload);
@@ -241,9 +260,31 @@ export default function ProfilePage() {
             {/* ── Left: Identity card ── */}
             <aside className="prof-aside">
               <div className="prof-avatar-wrap">
-                <div className="prof-avatar">
-                  <span className="prof-initials">{initials}</span>
-                  <button className="prof-avatar-btn" aria-label="Change photo">
+              <div className="prof-avatar">
+                  <span className="prof-initials">
+                    {photoPreview
+                      ? <img src={photoPreview} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                      : initials}
+                  </span>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      if (photoPreview?.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+                      setPhotoFile(file);
+                      setPhotoPreview(URL.createObjectURL(file));
+                    }}
+                  />
+                  <button
+                    className="prof-avatar-btn"
+                    aria-label="Change photo"
+                    type="button"
+                    onClick={() => document.getElementById('avatar-upload').click()}
+                  >
                     <Camera size={13} />
                   </button>
                 </div>

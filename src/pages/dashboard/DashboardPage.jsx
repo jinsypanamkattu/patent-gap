@@ -41,6 +41,47 @@ const formatDate = (dateString) => {
   });
 };
 
+// Add these helpers at the top of DashboardPage (same as PatentDetailPage)
+const getRiskTerm = (score) => {
+  if (score >= 0.9) return 'high';
+  if (score >= 0.7) return 'medium';
+  return 'low';
+};
+
+const calculatePatentRisk = (infringements = []) => {
+  if (!infringements.length) return 'low';
+  // A patent is high risk if ANY infringement is high risk
+  const hasHigh = infringements.some(inf => {
+    const claims = inf.similar_claims || [];
+    if (!claims.length) return false;
+    const avg = claims.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / claims.length;
+    return avg >= 0.9;
+  });
+  if (hasHigh) return 'high';
+  const hasMedium = infringements.some(inf => {
+    const claims = inf.similar_claims || [];
+    if (!claims.length) return false;
+    const avg = claims.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / claims.length;
+    return avg >= 0.7;
+  });
+  return hasMedium ? 'medium' : 'low';
+};
+
+// ── Mirrors PatentDetailPage exactly ──────────────────────────────
+const calculateOverlapScore = (similarClaims = []) => {
+  if (!similarClaims?.length) return 0;
+  const avg = similarClaims.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / similarClaims.length;
+  return Math.round(avg * 100 * 100) / 100; // e.g. 87.43
+};
+
+const calculatePatentOverlapScore = (infringements = []) => {
+  if (!infringements.length) return 0;
+  // Average the overlap score across every infringement on this patent
+  const scores = infringements.map(inf => calculateOverlapScore(inf.similar_claims || []));
+  const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return Math.round(avg * 100) / 100;
+};
+
 // Maps each StatCard to the patent statuses it should show
 const STAT_STATUS_MAP = {
   activeScans:      ['patented'],
@@ -78,7 +119,8 @@ export default function DashboardPage() {
     console.log('🔐 Session:', JSON.parse(localStorage.getItem('session') || '{}'));
     // FIX 1: Call both loadPatents AND loadStats so patents.stats.highRiskMatches
     // gets populated from the backend (previously only loadPatents was called).
-    await Promise.all([loadPatents(), loadStats()]);
+    await Promise.all([loadPatents()]);
+    //await Promise.all([loadPatents(), loadStats()]);
   };
 
   const handleRefresh = async () => {
@@ -93,7 +135,11 @@ export default function DashboardPage() {
     filterPatents({ status: next });
   };
 
-  const mappedPatents = patents.patents.map(p => ({
+  const mappedPatents = patents.patents.map(p => {
+  // ✅ Compute riskLevel FIRST, before using it in the object
+  const riskLevel = calculatePatentRisk(p.infringements || []);
+
+  return {
     id: p._id,
     title: p.title || p.name || 'Untitled Project',
     patentNumber: p.patentId || String(p._id || '').split('_')[1] || 'N/A',
@@ -104,13 +150,15 @@ export default function DashboardPage() {
     keywords: p.keywords,
     description: p.description,
     matchesCount: p.matchCount || p.match_count || 0,
-    // FIX 2: Extract per-patent high risk count so we can use it as a local
-    // fallback when the backend stats endpoint returns nothing.
-    highRiskCount: p.highRiskMatches || p.high_risk_matches || 0,
+    riskLevel,                                     // ✅ now defined
+    isHighRisk: riskLevel === 'high',              // ✅ now defined
+    highRiskCount: riskLevel === 'high' ? 1 : 0,  // ✅ now defined
     documentsCount: p.documentsCount,
-    progress: p.progress || 0,
+    //progress: p.progress || 0,
+    progress: calculatePatentOverlapScore(p.infringements || []),
     infringementAnalysisStatus: p.infringement_analysis_status || 'unknown',
-  }));
+  };
+});
 
   console.log('📊 Raw patent fields:', patents.patents[0]);
   console.log('📋 All statuses:', mappedPatents.map(p => ({ title: p.title, status: p.status })));
@@ -119,21 +167,34 @@ export default function DashboardPage() {
   // This mirrors what home_new.html does:
   //   cases.reduce((sum, c) => sum + (c.highRiskMatches || 0), 0)
   // Used as a fallback when patents.stats.highRiskMatches is not yet available.
-  const localHighRiskMatches = mappedPatents.reduce(
+  /*const localHighRiskMatches = mappedPatents.reduce(
     (sum, p) => sum + (p.highRiskCount || 0),
     0
-  );
+  );*/
 
   // Resolved value: backend stat takes priority, local sum is the fallback.
-  const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;
+  //const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;
+  // This now correctly counts patents with computed high risk
+const localHighRiskMatches = mappedPatents.filter(p => p.isHighRisk).length;
+const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;
 
   // Step 1 — filter by status card selection
-  const statusFilteredPatents = (() => {
+  /*const statusFilteredPatents = (() => {
     if (!statusFilter || statusFilter === 'all') return mappedPatents;
     const allowed = STAT_STATUS_MAP[statusFilter];
     if (!allowed || allowed === 'all') return mappedPatents;
     return mappedPatents.filter(p => allowed.includes(p.status));
-  })();
+  })();*/
+  // Replace the highRiskMatches filter logic in statusFilteredPatents
+    const statusFilteredPatents = (() => {
+      if (!statusFilter || statusFilter === 'all') return mappedPatents;
+      if (statusFilter === 'highRiskMatches') {
+        return mappedPatents.filter(p => p.isHighRisk);  // ← use computed riskLevel
+      }
+      const allowed = STAT_STATUS_MAP[statusFilter];
+      if (!allowed || allowed === 'all') return mappedPatents;
+      return mappedPatents.filter(p => allowed.includes(p.status));
+    })();
 
   // Step 2 — filter by search query on top of status filter
   const filteredPatents = searchQuery.trim()
@@ -426,7 +487,7 @@ export default function DashboardPage() {
                   className="animate-fadeInUp"
                   style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
                 >
-                  <ProjectCard {...patent} />
+                 <ProjectCard {...patent} riskLevel={patent.riskLevel} />
                 </div>
               ))}
             </div>

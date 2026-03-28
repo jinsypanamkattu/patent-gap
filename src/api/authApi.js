@@ -29,24 +29,48 @@ export const authApi = {
 
   register: async (name, email, password, company, fullPayload = {}) => {
   try {
+    console.log('📤 register payload:', fullPayload);
+
+    // ── Remap profile_picture → photo_url so backend key matches ──
+    const { profile_picture, photo, photoFile: _photoFile, ...restPayload } = fullPayload;
+    const photo_url = fullPayload.photo_url || profile_picture || photo || null;
+
     const { data } = await axiosInstance.post('/create-attorney', {
       name, email, password, company,
-      ...fullPayload,   // photo, jobTitle, phone, linkedIn, metadata, etc.
+      ...restPayload,
+      ...(photo_url ? { photo_url } : {}),  // ← always sent as photo_url
     });
 
-      const session = {
-        user_id: data.user_id || data.user?.id,
-        email: data.email || email,
-        user: data.user || { id: data.user_id, email: data.email || email },
-        token: data.token || null,
-      };
-      localStorage.setItem('session', JSON.stringify(session));
+    const session = {
+      user_id:   data.user_id  || data.user?.id,
+      email:     data.email    || email,
+      user:      {
+        id:        data.user_id  || data.user?.id || email,
+        email:     data.email    || data.user?.email || email,
+        photo_url: data.photo_url || photo_url || null,  // ← persist locally even if backend doesn't echo it back
+        full_name: data.full_name || fullPayload.full_name || null,
+      },
+      token: data.token || null,
+    };
+    localStorage.setItem('session', JSON.stringify(session));
 
-      return data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Registration failed' };
-    }
-  },
+    // ── Return photo_url so handleRegister can put it in Redux ──
+    return { ...data, photo_url: data.photo_url || photo_url };
+
+  } catch (error) {
+    const backendMessage =
+      error.response?.data?.message ||
+      error.response?.data?.error   ||
+      error.response?.data?.detail  ||
+      (typeof error.response?.data === 'string' ? error.response.data : null);
+
+    throw {
+      message: backendMessage || error.message || 'Registration failed',
+      status:  error.response?.status || null,
+      data:    error.response?.data   || null,
+    };
+  }
+},
 
   forgotPassword: async (email) => {
     try {

@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 
 const NAV_ITEMS = [
   {
@@ -71,11 +72,10 @@ const NAV_ITEMS = [
             <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
           </svg>
         ),
-        label: 'Profile', id: 'team', badge: null, href: '/profile',
+        label: 'Profile', id: 'profile', badge: null, href: '/profile',
       },
       {
         icon: (
-          /* Gear / Settings icon — distinct cog with 8 teeth */
           <svg className="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -89,6 +89,31 @@ const NAV_ITEMS = [
 
 export default function DashboardSidebar({ activeItem, onItemClick, isOpen, onClose }) {
   const navigate = useNavigate()
+  //const user = useSelector((state) => state.auth.user)
+
+  // In DashboardSidebar.jsx — replace the existing useSelector line
+  const reduxUser  = useSelector((state) => state.auth.user)    // basic auth user
+  const userProfile = useSelector((state) => state.user.profile) // full profile from API
+
+  // Merge — prefer full profile data, fall back to auth user
+  const user = userProfile || reduxUser
+
+  const getInitials = (u) => {
+    if (!u) return '?'
+    if (u.name || u.full_name) {
+      const name  = u.name || u.full_name
+      const parts = name.trim().split(' ').filter(Boolean)
+      return parts.length >= 2
+        ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+        : parts[0].slice(0, 2).toUpperCase()
+    }
+    if (u.email) return u.email.slice(0, 2).toUpperCase()
+    return '?'
+  }
+
+  const displayName = user?.name || user?.full_name || user?.email || 'Unknown User'
+  const displayRole = user?.role || user?.job_title || user?.title || 'User'
+  const initials    = getInitials(user)
 
   const handleClick = (item) => {
     onItemClick(item.id)
@@ -103,20 +128,20 @@ export default function DashboardSidebar({ activeItem, onItemClick, isOpen, onCl
         <Link to="/" className="sb-brand">
           <div className="sb-glyph">
             <div style={{
-                width: 36, height: 36,
-                background: 'var(--deep)',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                <img
-                  src="/logo.png"
-                  alt="Patent Gap AI"
-                  style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }}
-                />
-              </div>
+              width: 36, height: 36,
+              background: 'var(--deep)',
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <img
+                src="/logo.png"
+                alt="Patent Gap AI"
+                style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }}
+              />
+            </div>
           </div>
           <div className="sb-wordmark">
             Patent Gap AI
@@ -146,14 +171,47 @@ export default function DashboardSidebar({ activeItem, onItemClick, isOpen, onCl
           ))}
         </nav>
 
+        {/* ✅ Bottom user section — clicking navigates to /profile */}
         <div className="sb-footer">
-          <div className="sb-user">
-            <div className="sb-avatar">JD</div>
-            <div>
-              <div className="sb-uname">Jane Doe</div>
-              <div className="sb-urole">IP Attorney</div>
+          <button
+            className="sb-user"
+            onClick={() => { onItemClick('profile'); onClose(); navigate('/profile'); }}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: '1px solid transparent',   // ✅ always has border space, just invisible
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 10px',
+              borderRadius: 8,
+              textAlign: 'left',
+              transition: 'border-color 0.15s',  // ✅ only animate the border
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--rule)'}   // ✅ just outline
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}   // ✅ hide outline
+          >
+            <div className="sb-avatar" title={displayName}>
+              {initials}
             </div>
-          </div>
+            <div style={{ overflow: 'hidden' }}>
+              <div className="sb-uname" style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {displayName}
+              </div>
+              <div className="sb-urole">{displayRole}</div>
+            </div>
+            {/* ✅ small arrow hint */}
+            <svg style={{ marginLeft: 'auto', flexShrink: 0, opacity: 0.4 }}
+              width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
         </div>
       </aside>
     </>

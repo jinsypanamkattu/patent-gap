@@ -383,6 +383,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
         console.log('🚀 [Start Analysis] caseDetails before API call:', caseDetails);
         console.log('🚀 [Start Analysis] file before API call:', step1Data.file);
         const created = await patentApi.createPatent(caseDetails, step1Data.file);
+        console.log('✅ createPatent response:', created);
         caseId = created.case_id;
         if (created.case_data) dispatch(addPatent(created.case_data));
       } else {

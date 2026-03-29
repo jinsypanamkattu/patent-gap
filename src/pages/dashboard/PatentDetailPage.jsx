@@ -750,9 +750,15 @@ const PatentDetailPage = () => {
   const patentNumber   = caseData?.patentId || projectData.patentNumber || caseData?._id?.split('_')[1] || 'N/A';
   const status         = getStatusShorthand(caseData?.status || projectData.status || 'draft');
   const updatedAt      = caseData ? formatTimeAgo(caseData.updated_date || caseData.created_date) : (projectData.updatedAt || '—');
-  const inventors      = caseData?.inventors?.join(', ') || projectData.inventors || 'Not specified';
+ // const inventors      = caseData?.inventors?.join(', ') || projectData.inventors || 'Not specified';
+ const inventors = Array.isArray(caseData?.inventors)
+  ? caseData.inventors.join(', ')
+  : caseData?.inventors || projectData.inventors || 'Not specified';
   const filedDate      = formatDate(caseData?.filing_date || caseData?.filedAt) || projectData.filedDate || '—';
-  const keywords       = caseData?.keywords?.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || projectData.keywords || 'No keywords available';
+  //const keywords       = caseData?.keywords?.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || projectData.keywords || 'No keywords available';
+  const keywords = Array.isArray(caseData?.keywords)
+  ? caseData.keywords.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ')
+  : caseData?.keywords || projectData.keywords || 'No keywords available';
   const description    = caseData?.context || caseData?.description || projectData.description || 'No description available';
   const matchesCount   = caseData?.infringements?.length ?? projectData.matchesCount ?? 0;
   const documentsCount = caseData?.documents?.length || projectData.documentsCount || 1;

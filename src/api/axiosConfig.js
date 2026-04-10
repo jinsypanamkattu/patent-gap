@@ -33,64 +33,61 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 // Response interceptor
+// In axiosConfig.js — update your response error interceptor:
 axiosInstance.interceptors.response.use(
   (response) => {
     console.log('📦 Raw response:', response.data);
     return response;
   },
-  (error) => {
-    // ─── 1. Detailed diagnostics ────────────────────────────────────
-    if (error.response) {
-      // Server replied with a non-2xx status
-      console.log('💥 Response error status :', error.response.status);
-      console.log('💥 Response error data   :', JSON.stringify(error.response.data, null, 2));
-      console.log('💥 Response error headers:', error.response.headers);
-    } else if (error.request) {
-      // Request left the browser but no response came back (network/CORS/timeout)
-      console.error('📡 No response received');
-      console.error('   error.code    :', error.code);        // ERR_NETWORK | ECONNABORTED | ERR_CANCELED
-      console.error('   error.message :', error.message);
-      console.error('   baseURL       :', error.config?.baseURL);
-      console.error('   url           :', error.config?.url);
-      console.error('   full URL      :', (error.config?.baseURL || '') + (error.config?.url || ''));
-      console.error('   method        :', error.config?.method);
-      console.error('   timeout       :', error.config?.timeout);
-      console.error('   sent data     :', error.config?.data);
-    } else {
-      // Error was thrown before the request even left (bad config, etc.)
-      console.error('⚙️ Request setup error:', error.message);
-    }
+  async (error) => {  // ← make this async
+    console.error('💥 Response error status :', error?.response?.status);
 
-    // ─── 2. Auth-based redirects (only when server actually replied) ─
-    if (error.response) {
-      const isAuthEndpoint = AUTH_ENDPOINTS.some(ep =>
-        error.config?.url?.includes(ep)
-      );
-      switch (error.response.status) {
-        case 401:
-          if (!isAuthEndpoint) {
-            localStorage.removeItem('session');
-            window.location.href = '/login';
-          }
-          break;
-        case 403: console.error('Forbidden: You do not have permission'); break;
-        case 404: console.error('Not Found: Resource does not exist'); break;
-        case 500: console.error('Server Error: Please try again later'); break;
-        default:  console.error('An error occurred:', error.response?.data?.message);
+    // ── BLOB BODY FIX ──────────────────────────────────────────────
+    // When responseType is 'blob', error.response.data is a Blob even
+    // for error responses. Read it as text so we can log/parse it.
+    let errorData = error?.response?.data;
+    if (errorData instanceof Blob) {
+      try {
+        const text = await errorData.text();
+        console.error('💥 Response error body (text):', text);
+        try {
+          errorData = JSON.parse(text);
+          console.error('💥 Response error body (parsed):', errorData);
+        } catch {
+          errorData = { message: text };
+        }
+        // Patch it back so downstream catch blocks see real data
+        if (error.response) error.response.data = errorData;
+      } catch (readErr) {
+        console.error('💥 Could not read error blob:', readErr.message);
       }
+    } else {
+      console.error('💥 Response error data   :', errorData);
+    }
+    // ── END BLOB FIX ───────────────────────────────────────────────
+
+    console.error('💥 Response error headers:', error?.response?.headers);
+
+    const status = error?.response?.status;
+
+    if (status === 401) {
+      // your existing 401 handling
     }
 
-    // ─── 3. Reject with a RICH error object (never loses context) ───
-    const enrichedError = {
-      message : error.response?.data?.message || error.message || 'Something went wrong',
-      code    : error.code,                        // ERR_NETWORK, ECONNABORTED, etc.
-      status  : error.response?.status,            // 404, 500, etc. (undefined if network error)
-      data    : error.response?.data,              // full backend payload
-      isNetwork: !error.response && !!error.request, // true = backend unreachable
-    };
+    if (status >= 500) {
+      console.error('Server Error: Please try again later');
+    }
 
-    console.error('🧨 Enriched error being rejected:', enrichedError);
-    return Promise.reject(enrichedError);
+    // Enrich and re-throw
+    const enriched = {
+      message: error?.message,
+      code:    error?.code,
+      status,
+      data:    errorData,    // ← now contains parsed JSON, not Blob
+      isNetwork: !error?.response,
+    };
+    console.error('🧨 Enriched error being rejected:', enriched);
+    return Promise.reject(enriched);
   }
 );
 

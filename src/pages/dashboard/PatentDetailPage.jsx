@@ -3,7 +3,7 @@
 // Fully responsive — mobile (320px+), tablet (768px+), desktop (1024px+)
 // ===========================
 
-import { Clock, ArrowLeft, FileText, Calendar, User, Tag, Download, Trash2, RefreshCw } from 'lucide-react';
+import { Clock, ArrowLeft, FileText, Calendar, User, Tag, Download, Trash2, RefreshCw, Search } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -13,6 +13,7 @@ import DocumentModal from '../../components/dashboard/DocumentModal';    // ← 
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
 import { patentApi } from '../../api/patentApi';
 import { deletePatent, updatePatent } from '../../store/slices/patentSlice';
+import SearchLimitationEditor from '../../components/dashboard/SearchLimitationEditor';
 
 const getStatusShorthand = (status) => {
   status = String(status || '');
@@ -70,6 +71,7 @@ const getSourceName = (id = '') => {
   if (id.includes('uspto'))     return 'US Patent Office';
   if (id.includes('google'))    return 'Google';
   if (id.includes('espacenet')) return 'Espacenet';
+  if (id.includes('local')) return 'Manual Entry';
   return 'Patent Gap';
 };
 
@@ -782,7 +784,7 @@ const PatentDetailPage = () => {
  const inventors = Array.isArray(caseData?.inventors)
   ? caseData.inventors.join(', ')
   : caseData?.inventors || projectData.inventors || 'Not specified';
-  const filedDate      = formatDate(caseData?.filing_date || caseData?.filedAt) || projectData.filedDate || '—';
+  const filedDate      = formatDate(caseData?.filingDate || caseData?.filedAt) || projectData.filedDate || '—';
   //const keywords       = caseData?.keywords?.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || projectData.keywords || 'No keywords available';
   const keywords = Array.isArray(caseData?.keywords)
   ? caseData.keywords.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ')
@@ -860,6 +862,8 @@ const PatentDetailPage = () => {
       setPageLoading(true);
       const c = await loadCase();
       setCaseData(c);
+      console.log('🆔 caseData._id:', c?._id);           
+      console.log('🏷️ getSourceName result:', getSourceName(c?._id || ''));     
 
         console.log('🗂️ FULL caseData:', JSON.stringify(c, null, 2));
 
@@ -1022,6 +1026,12 @@ useEffect(() => {
       navigate('/dashboard');
     } catch (err) { alert(`Error: ${err?.message}`); }
   };
+  const classifyDocUrl = (url = '') => {
+  const firstHalf = url.split('.')[0]; // everything before the first dot
+  if (firstHalf.includes('uspto'))      return 'uspto';
+  if (firstHalf.includes('documents/')) return 'local';
+  return 'external';
+};
 
   // ── CHANGED: just sets the modal index — no blob fetch ────────────────── //
   const openDocument = (index) => {
@@ -1032,14 +1042,29 @@ useEffect(() => {
     console.log('📄 Opening doc [' + index + ']:', doc);
     console.log('📌 source:', source, '| url:', url);
 
-    if (!source.includes('local') && !source.includes('uspto')) {
-      // external — open in new tab
-      window.open(url, '_blank', 'noopener,noreferrer');
-      return;
-    }
+    
 
-    // local or USPTO — open modal
-    setDocModalIndex(index);
+     // const firstHalf = url.split('.')[0];
+     const kind = classifyDocUrl(url);
+
+
+      // USPTO domain — check if it's a direct file or a search/app page
+      if (kind === 'uspto') {
+        
+        // Direct USPTO file (pdfpiw, etc.) → modal
+        setDocModalIndex(index);
+        return;
+      }
+
+      // Local document stored on your server → modal
+      if (kind === 'local') {
+        setDocModalIndex(index);
+        return;
+      }
+
+      // Everything else → new tab
+      window.open(url, '_blank', 'noopener,noreferrer');
+   
   };
   if (pageLoading) {
     return (
@@ -1256,6 +1281,7 @@ useEffect(() => {
               <InfoRow icon={Clock}    label="Last Updated" value={updatedAt} />
               <InfoRow icon={User}     label="Inventors"    value={inventors} />
               <InfoRow icon={Tag}      label="Keywords"     value={keywords} />
+              <InfoRow icon={Tag}      label="Source"       value={getSourceName(caseData?._id || '')} />
             </SectionCard>
 
             {/* Context & Description — editable */}
@@ -1289,6 +1315,21 @@ useEffect(() => {
               )}
             </SectionCard>
           </div>
+
+          {/* ── Search Limitations ── */}
+          <SectionCard
+            title="Search Limitations"
+            eyebrow="User Defined"
+            icon={Search}
+          >
+            <SearchLimitationEditor
+              caseId={caseId}
+              initialData={caseData?.searchLimitations}
+              onSave={(data) =>
+                setCaseData(prev => ({ ...prev, searchLimitations: data }))
+              }
+            />
+          </SectionCard>
 
           {/* ── Documents ── */}
           <SectionCard
@@ -1333,9 +1374,27 @@ useEffect(() => {
                     // ── Thumbnail visuals are 100% unchanged ──────────────── //
                     const url            = doc.url || '';
                     //const ext            = url.split('.').pop();
-                    const ext   = url.split('/').pop().split('.').pop(); // ← use split('/').pop() not split('.')
+                    //const ext   = url.split('/').pop().split('.').pop(); // ← use split('/').pop() not split('.')
                     const src            = doc.source || '';
-                    const bgImg          = src === 'uspto' ? 'uspto.jpg' : 'local.png';
+                    console.log('📄 doc.source raw value:', JSON.stringify(doc.source));
+                    console.log('📄 full doc object:', doc);
+                    //const bgImg          = src === 'uspto' ? 'uspto.jpg' : 'uspto.jpg';
+                    // ── Safe ext extraction ──────────────────────────────
+                    const rawExt = url.split('/').pop().split('.').pop();
+                    // Only use it if it looks like a real extension (≤5 chars, no spaces/?)
+                    const ext = rawExt && rawExt.length <= 5 && !/[?&\s]/.test(rawExt)
+                      ? rawExt
+                      : 'pdf'; // ← fallback
+
+                    const srcLower = src.toLowerCase();
+                    const bgImg = 
+                      srcLower.includes('uspto')          ? 'uspto.jpg'        :
+                      srcLower.includes('espacenet')      ? 'espacenet.png'    :
+                      srcLower.includes('google patents')  ? 'googlepatents.png'       :
+                      srcLower.includes('global dossier') ? 'espacenet.png':
+                      srcLower.includes('local')        ? 'local.png'      :
+                      srcLower.includes('freepatents')        ? 'freepatentsonline.png'      :
+                      'default.png';
                     return (
                       <div key={i} onClick={() => openDocument(i)} className="pd-doc-thumb">
                         <div
@@ -1345,9 +1404,52 @@ useEffect(() => {
                           style={{ cursor: 'pointer' }}
                         >
                           {/* original image — untouched */}
-                          <img src={`/images/${bgImg}`} alt={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={`/images/${bgImg}`} alt={src} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.45, }} />
                           <div className="pd-doc-blur" />
-                          <div className="pd-doc-label">{i + 1}.{ext}</div>
+                          <div className="pd-doc-label" style={{
+                              flexDirection: 'column',
+                              gap: 6,
+                              padding: '0 6px',
+                              textAlign: 'center',
+                            }}>
+                              {/* big index number */}
+                              <span style={{
+                                fontSize: '2rem',
+                                fontWeight: 900,
+                                color: 'var(--ink)',
+                                lineHeight: 1,
+                                letterSpacing: '-0.02em',
+                              }}>
+                                {i + 1}
+                              </span>
+
+                              {/* source name */}
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 900,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.10em',
+                                color: 'var(--ink)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '92%',
+                                lineHeight: 1.2,
+                              }}>
+                                {src || `doc ${i + 1}`}
+                              </span>
+
+                              {/* extension */}
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 900,
+                                color: 'var(--ink2)',
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                              }}>
+                                .{ext}
+                              </span>
+                            </div>
                         </div>
                       </div>
                     );
@@ -1453,7 +1555,9 @@ useEffect(() => {
             fontSize: 11, color: 'var(--ink3)', margin: 0,
             textTransform: 'uppercase', letterSpacing: '0.08em',
           }}>
-            Status: {infringementAnalysisStatus}
+            Status: {infringementAnalysisStatus}<br />
+            We are currently working hard to find the information and insights needed to protect your inventions. <br />
+            This analysis can take a while. We will notify you immediately once the results are ready.
           </p>
         </div>
         <span style={{
@@ -1757,18 +1861,27 @@ useEffect(() => {
           onNext={() => setDocModalIndex(i => Math.min(i + 1, caseData.documents.length - 1))}
           onPrev={() => setDocModalIndex(i => Math.max(i - 1, 0))}
           fetchBlob={async (doc) => {
-            const source = (doc?.source || '').toLowerCase();
-            const url    = doc?.url || '';
+              const url  = doc?.url || '';
+              const kind = classifyDocUrl(url);
 
-            if (source.includes('local')) {
-              //const baseURL    = axiosInstance.defaults.baseURL || '';
-              return await patentApi.getDocumentStream(`/${url}`);
-            }
+              if (kind === 'uspto') {
+                try {
+                  return await patentApi.proxyDocument(url);
+                } catch (err) {
+                  throw new Error(
+                    err?.message?.includes('HTML page')
+                      ? 'This document link points to a USPTO search page, not a direct file. Open it in a new tab instead.'
+                      : `Could not load USPTO document: ${err?.message || 'Unknown error'}`
+                  );
+                }
+              }
 
-            if (source.includes('uspto')) {
-              return await patentApi.proxyDocument(url);
-            }
-          }}
+              if (kind === 'local') {
+                return await patentApi.getDocumentStream(`/${url}`);
+              }
+
+              throw new Error(`Unsupported document source for URL: ${url}`);
+            }}
         />
       )}
 

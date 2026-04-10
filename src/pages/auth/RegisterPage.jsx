@@ -81,6 +81,8 @@ export default function RegisterPage() {
     country:          '',   // optional
   })
 
+  const [showTerms, setShowTerms] = useState(false);
+
   const [photoPreview, setPhotoPreview]     = useState(null)
   const [photoFile, setPhotoFile]           = useState(null)
   const [showPassword, setShowPassword]     = useState(false)
@@ -667,9 +669,14 @@ export default function RegisterPage() {
                           fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6, cursor: 'pointer',
                         }}>
                           I agree to the{' '}
-                          <a href="/terms" style={{ color: 'var(--accent)' }}>Terms of Service</a>
-                          {' '}and{' '}
-                          <a href="/privacy" style={{ color: 'var(--accent)' }}>Privacy Policy</a>.
+                          <span
+                              onClick={() => setShowTerms(true)}
+                              style={{ color: 'var(--accent)', cursor: 'pointer', textDecoration: 'underline' }}
+                            >
+                              Terms of Service and Privacy Policy.
+                            </span>
+                          
+                          
                           I understand that certain device and network data is collected automatically
                           to secure and personalise my account.
                         </label>
@@ -838,6 +845,48 @@ export default function RegisterPage() {
           to   { transform: rotate(360deg); }
         }
       `}</style>
+
+      {showTerms && (
+  <div style={{
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  }}>
+    <div style={{
+      width: '60%',
+      height: '90%',
+      background: 'white',
+      borderRadius: 10,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      
+      {/* Header */}
+      <div style={{
+        padding: '10px 16px',
+        borderBottom: '1px solid #eee',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h3>Terms & Conditions</h3>
+        <button onClick={() => setShowTerms(false)}>✕</button>
+      </div>
+
+      {/* PDF Viewer */}
+      <iframe
+        src="./PatentGapBetaAgreement.pdf"
+        title="Terms"
+        style={{ flex: 1, border: 'none' }}
+      />
+    </div>
+  </div>
+)}
 
       <Footer />
     </>

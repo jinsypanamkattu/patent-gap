@@ -3,7 +3,7 @@
 // Self-contained — imports only what it needs.
 // Props:
 //   caseId        {string}   — used for the API call
-//   initialData   {object}   — { companies: [], terms: [], urls: [] }
+//   initialData   {object}   — { companies: [], keywords: [], urls: [] }
 //   onSave        {function} — called with the saved payload on success
 // ===========================
 
@@ -215,7 +215,7 @@ const Field = ({ label, children }) => (
 // ─── Main export ──────────────────────────────────────────────
 const SearchLimitationEditor = ({ caseId, initialData, onSave }) => {
   const [companies, setCompanies] = useState(initialData?.companies || []);
-  const [terms,     setTerms]     = useState(initialData?.terms     || []);
+  const [keywords,     setKeywords]     = useState(initialData?.keywords     || []);
   const [urls,      setUrls]      = useState(initialData?.urls      || []);
   const [saving,    setSaving]    = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -224,7 +224,7 @@ const SearchLimitationEditor = ({ caseId, initialData, onSave }) => {
   // Sync if parent re-fetches data
   useEffect(() => {
     setCompanies(initialData?.companies || []);
-    setTerms(initialData?.terms         || []);
+    setKeywords(initialData?.keywords         || []);
     setUrls(initialData?.urls           || []);
   }, [initialData]);
 
@@ -232,7 +232,7 @@ const SearchLimitationEditor = ({ caseId, initialData, onSave }) => {
   const removeAt = setter => i  => setter(prev => prev.filter((_, idx) => idx !== i));
 
   const handleSave = async () => {
-    if (!companies.length && !terms.length && !urls.length) {
+    if (!companies.length && !keywords.length && !urls.length) {
       setSaveError('Add at least one value before saving.');
       return;
     }
@@ -240,11 +240,11 @@ const SearchLimitationEditor = ({ caseId, initialData, onSave }) => {
       //alert('This will save the search limitations to the case. The infringement analysis will then exclude any patents matching these companies, keywords, or URLs.');
       setSaving(true);
       setSaveError(null);
-      console.log('💾 Saving search limitations payload', caseId, { companies, terms, urls });
+      console.log('💾 Saving search limitations payload', caseId, { companies, keywords, urls });
       await patentApi.updateCase(caseId, {
-        searchLimitations: { companies, terms, urls },
+        searchLimitations: { companies, keywords, urls },
       });
-      onSave?.({ companies, terms, urls });
+      onSave?.({ companies, keywords, urls });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
@@ -258,7 +258,7 @@ const SearchLimitationEditor = ({ caseId, initialData, onSave }) => {
   const handleCancel = () => {
     
     setCompanies(initialData?.companies || []);
-    setTerms(initialData?.terms         || []);
+    setKeywords(initialData?.keywords         || []);
     setUrls(initialData?.urls           || []);
     setSaveError(null);
   };
@@ -276,9 +276,9 @@ const SearchLimitationEditor = ({ caseId, initialData, onSave }) => {
 
       <Field label="Keywords / Terms">
         <TagInput
-          tags={terms}
-          onAdd={addTo(setTerms)}
-          onRemove={removeAt(setTerms)}
+          tags={keywords}
+          onAdd={addTo(setKeywords)}
+          onRemove={removeAt(setKeywords)}
           placeholder="Type a keyword and press Enter or comma…"
         />
       </Field>

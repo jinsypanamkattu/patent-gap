@@ -90,33 +90,33 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
         const keywords = caseDetails.keywords || [];
 
         // 3. Trigger similarity analysis (non-blocking fire-and-forget)
-        patentApi.triggerSimilarityAnalysis(caseId, keywords).catch(err => {
+       /* patentApi.triggerSimilarityAnalysis(caseId, keywords).catch(err => {
           console.warn('Similarity analysis trigger failed (non-blocking):', err.message);
-        });
+        });*/
 
         // 4. Get claims
-        setLoadingStatus('claims');
+       /* setLoadingStatus('claims');
         let claims = [];
         try {
           claims = await patentApi.getClaims(caseId);
         } catch (e) {
           console.warn('getClaims failed (non-blocking):', e.message);
-        }
+        }*/
 
         // 5. Get infringement analysis
-        setLoadingStatus('infringement');
+       /* setLoadingStatus('infringement');
         let infringements = [];
         try {
           const analysisData = await patentApi.getInfringementAnalysis(caseId);
           infringements = analysisData?.similar_infringements || [];
         } catch (e) {
           console.warn('getInfringementAnalysis failed (non-blocking):', e.message);
-        }
+        }*/
 
         // 6. Persist results
-        if (infringements.length > 0 || claims.length > 0) {
+        /*if (infringements.length > 0 || claims.length > 0) {
           await patentApi.updateCase(caseId, { infringements, claims }).catch(() => {});
-        }
+        }*/
 
         // 7. Signal parent to close + navigate — skip Step 2
         onContinue({ skipStep2: true, caseId });
@@ -197,17 +197,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
       {/* Body */}
       <div className="pm-body">
 
-        {/* Project Name */}
-        <div className="pm-field">
-          <label className="pm-label">Project Name <span className="pm-required">*</span></label>
-          <input
-            type="text"
-            value={projectName}
-            onChange={e => setProjectName(e.target.value)}
-            placeholder="e.g., Foldable Display Hinge Analysis"
-            className="pm-input"
-          />
-        </div>
+       
 
         {/* Tabs */}
         <div className="pm-tabs">
@@ -226,6 +216,17 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
         {/* ── UPLOAD TAB CONTENT ── */}
         {activeTab === 'upload' && (
           <div>
+             {/* Project Name */}
+            <div className="pm-field">
+              <label className="pm-label">Project Name <span className="pm-required">*</span></label>
+              <input
+                type="text"
+                value={projectName}
+                onChange={e => setProjectName(e.target.value)}
+                placeholder="e.g., Foldable Display Hinge Analysis"
+                className="pm-input"
+              />
+            </div>
             {/* Patent ID field */}
             <div className="pm-field">
               <label className="pm-label">Patent ID <span className="pm-required">*</span></label>
@@ -342,7 +343,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
                 placeholder="e.g., US10203040B2"
                 className="pm-input pm-mono"
               />
-              <p className="pm-hint">We'll automatically fetch and analyse your patent</p>
+              <p className="pm-hint">We'll automatically fetch  your patent</p>
             </div>
 
             {/* Info banner explaining auto-flow */}
@@ -359,9 +360,12 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
                 <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12.5, fontWeight: 600, color: 'var(--deep, #0D2818)', margin: '0 0 3px' }}>
                   Fully automatic
                 </p>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5 }}>
-                  We'll fetch the patent, isolate claims, and run infringement analysis — all in one step.
-                </p>
+                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12.5, fontWeight: 600, color: 'var(--deep, #0D2818)', margin: '0 0 3px' }}>
+                We'll create your patent
+              </p>
+              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5 }}>
+                To start the infringement analysis, click <strong style={{ color: 'var(--accent, #2E7D32)' }}>Start Analysis</strong> on the detail page.
+              </p>
               </div>
             </div>
 
@@ -466,7 +470,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
             </>
           ) : (
             <>
-              {activeTab === 'patentId' ? 'Fetch & Analyse' : 'Continue'}
+              {activeTab === 'patentId' ? 'Fetch & Create Patent' : 'Continue'}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
               </svg>
@@ -531,12 +535,12 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
           }
         }
 
-        patentApi.triggerSimilarityAnalysis(caseId, keywordsArray).catch(err => {
+       /* patentApi.triggerSimilarityAnalysis(caseId, keywordsArray).catch(err => {
           console.warn('Similarity analysis trigger failed (non-blocking):', err.message);
-        });
+        });*/
       }
 
-      setLoadingStatus('claims');
+     /* setLoadingStatus('claims');
       const claims = await patentApi.getClaims(caseId);
 
       setLoadingStatus('infringement');
@@ -545,12 +549,13 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
 
       if (infringements.length > 0) {
         await patentApi.updateCase(caseId, { infringements, claims });
-      }
+      }*/
 
       onSuccess?.();
       navigate(`/patent-detail?id=${caseId}`);
     } catch (err) {
-      setError(err?.message || 'Analysis failed. Please try again.');
+     // setError(err?.message || 'Analysis failed. Please try again.');
+      setError(err?.message || 'Error occurred while creating patent. Please try again.');
     } finally {
       setLoading(false);
       setLoadingStatus('');
@@ -703,8 +708,8 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
               <span className="pm-spinner" />
               {loadingStatus === 'creating'     ? 'Creating Patent…'       :
                loadingStatus === 'uploading'    ? 'Uploading File…'        :
-               loadingStatus === 'claims'       ? 'Isolating Claims…'      :
-               loadingStatus === 'infringement' ? 'Finding Infringements…' :
+               //loadingStatus === 'claims'       ? 'Isolating Claims…'      :
+               //loadingStatus === 'infringement' ? 'Finding Infringements…' :
                'Processing…'}
             </>
           ) : (
@@ -712,7 +717,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
-              Start Analysis
+              Start creating patents
             </>
           )}
         </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../../hooks/useStore';
 import { useUI } from '../../hooks/useUI';
 import { usePatents } from '../../hooks/usePatents';
@@ -10,6 +10,7 @@ import StatCard from '../../components/dashboard/StatCard';
 import ProjectCard from '../../components/dashboard/ProjectCard';
 import ProjectModal from '../../components/dashboard/ProjectModal';
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
+import NotificationBell from '../../components/dashboard/NotificationBell'; // ← NEW
 import { useUser } from '../../hooks/useUser';
 
 const getStatusShorthand = (status) => {
@@ -41,16 +42,8 @@ const formatDate = (dateString) => {
   });
 };
 
-// Add these helpers at the top of DashboardPage (same as PatentDetailPage)
-const getRiskTerm = (score) => {
-  if (score >= 0.9) return 'high';
-  if (score >= 0.7) return 'medium';
-  return 'low';
-};
-
 const calculatePatentRisk = (infringements = []) => {
   if (!infringements.length) return 'low';
-  // A patent is high risk if ANY infringement is high risk
   const hasHigh = infringements.some(inf => {
     const claims = inf.similar_claims || [];
     if (!claims.length) return false;
@@ -67,22 +60,19 @@ const calculatePatentRisk = (infringements = []) => {
   return hasMedium ? 'medium' : 'low';
 };
 
-// ── Mirrors PatentDetailPage exactly ──────────────────────────────
 const calculateOverlapScore = (similarClaims = []) => {
   if (!similarClaims?.length) return 0;
   const avg = similarClaims.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / similarClaims.length;
-  return Math.round(avg * 100 * 100) / 100; // e.g. 87.43
+  return Math.round(avg * 100 * 100) / 100;
 };
 
 const calculatePatentOverlapScore = (infringements = []) => {
   if (!infringements.length) return 0;
-  // Average the overlap score across every infringement on this patent
   const scores = infringements.map(inf => calculateOverlapScore(inf.similar_claims || []));
   const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
   return Math.round(avg * 100) / 100;
 };
 
-// Maps each StatCard to the patent statuses it should show
 const STAT_STATUS_MAP = {
   activeScans:      ['patented'],
   patentsAnalyzed:  'all',
@@ -96,6 +86,7 @@ export default function DashboardPage() {
   const { loadPatents, loadStats, filterPatents } = usePatents();
   const { loadUserProfile } = useUser();
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -105,7 +96,6 @@ export default function DashboardPage() {
 
   const newPatent = { title: '', patentNumber: '' };
 
-  // Read filters from Redux
   const searchQuery  = patents.filters.searchQuery;
   const statusFilter = patents.filters.status;
 
@@ -117,10 +107,7 @@ export default function DashboardPage() {
 
   const handleLoadDashboard = async () => {
     console.log('🔐 Session:', JSON.parse(localStorage.getItem('session') || '{}'));
-    // FIX 1: Call both loadPatents AND loadStats so patents.stats.highRiskMatches
-    // gets populated from the backend (previously only loadPatents was called).
     await Promise.all([loadPatents()]);
-    //await Promise.all([loadPatents(), loadStats()]);
   };
 
   const handleRefresh = async () => {
@@ -129,74 +116,57 @@ export default function DashboardPage() {
     setIsRefreshing(false);
   };
 
-  // Toggle stat card filter: clicking the active card resets to 'all'
   const handleStatCardClick = (cardKey) => {
     const next = statusFilter === cardKey ? 'all' : cardKey;
     filterPatents({ status: next });
   };
 
   const mappedPatents = patents.patents.map(p => {
-  // ✅ Compute riskLevel FIRST, before using it in the object
-  const riskLevel = calculatePatentRisk(p.infringements || []);
+    const riskLevel = calculatePatentRisk(p.infringements || []);
 
-  return {
-    id: p._id,
-    title: p.title || p.name || 'Untitled Project',
-    patentNumber: p.patentId || String(p._id || '').split('_')[1] || 'N/A',
-    status: getStatusShorthand(p.status),
-    updatedAt: formatTimeAgo(p.lastUpdated || p.updated_date || p.created_date),
-    inventors: p.inventors,
-    filedDate: p.filedDate || p.filed_date,
-    keywords: p.keywords,
-    description: p.description,
-    matchesCount: p.matchCount || p.match_count || 0,
-    riskLevel,                                     // ✅ now defined
-    isHighRisk: riskLevel === 'high',              // ✅ now defined
-    highRiskCount: riskLevel === 'high' ? 1 : 0,  // ✅ now defined
-    documentsCount: p.documentsCount,
-    //progress: p.progress || 0,
-    progress: calculatePatentOverlapScore(p.infringements || []),
-    infringementAnalysisStatus: p.infringement_analysis_status || 'unknown',
-  };
-});
+    const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+    const lastUpdated = p.last_updated || p.updated_date || p.lastUpdated;
+    const hasUpdates  = lastUpdated && lastViewed
+      ? new Date(lastUpdated) > lastViewed
+      : Boolean(lastUpdated);
+
+    return {
+      id: p._id,
+      title: p.title || p.name || 'Untitled Project',
+      patentNumber: p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+      status: getStatusShorthand(p.status),
+      updatedAt: formatTimeAgo(p.lastUpdated || p.updated_date || p.created_date),
+      inventors: p.inventors,
+      filedDate: p.filedDate || p.filed_date,
+      keywords: p.keywords,
+      description: p.description,
+      matchesCount: p.matchCount || p.match_count || 0,
+      riskLevel,
+      isHighRisk: riskLevel === 'high',
+      highRiskCount: riskLevel === 'high' ? 1 : 0,
+      documentsCount: p.documentsCount,
+      progress: calculatePatentOverlapScore(p.infringements || []),
+      infringementAnalysisStatus: p.infringement_analysis_status || 'unknown',
+      hasUpdates,
+    };
+  });
 
   console.log('📊 Raw patent fields:', patents.patents[0]);
   console.log('📋 All statuses:', mappedPatents.map(p => ({ title: p.title, status: p.status })));
 
-  // FIX 3: Compute highRiskMatches locally by summing per-patent counts.
-  // This mirrors what home_new.html does:
-  //   cases.reduce((sum, c) => sum + (c.highRiskMatches || 0), 0)
-  // Used as a fallback when patents.stats.highRiskMatches is not yet available.
-  /*const localHighRiskMatches = mappedPatents.reduce(
-    (sum, p) => sum + (p.highRiskCount || 0),
-    0
-  );*/
+  const localHighRiskMatches = mappedPatents.filter(p => p.isHighRisk).length;
+  const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;
 
-  // Resolved value: backend stat takes priority, local sum is the fallback.
-  //const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;
-  // This now correctly counts patents with computed high risk
-const localHighRiskMatches = mappedPatents.filter(p => p.isHighRisk).length;
-const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;
-
-  // Step 1 — filter by status card selection
-  /*const statusFilteredPatents = (() => {
+  const statusFilteredPatents = (() => {
     if (!statusFilter || statusFilter === 'all') return mappedPatents;
+    if (statusFilter === 'highRiskMatches') {
+      return mappedPatents.filter(p => p.isHighRisk);
+    }
     const allowed = STAT_STATUS_MAP[statusFilter];
     if (!allowed || allowed === 'all') return mappedPatents;
     return mappedPatents.filter(p => allowed.includes(p.status));
-  })();*/
-  // Replace the highRiskMatches filter logic in statusFilteredPatents
-    const statusFilteredPatents = (() => {
-      if (!statusFilter || statusFilter === 'all') return mappedPatents;
-      if (statusFilter === 'highRiskMatches') {
-        return mappedPatents.filter(p => p.isHighRisk);  // ← use computed riskLevel
-      }
-      const allowed = STAT_STATUS_MAP[statusFilter];
-      if (!allowed || allowed === 'all') return mappedPatents;
-      return mappedPatents.filter(p => allowed.includes(p.status));
-    })();
+  })();
 
-  // Step 2 — filter by search query on top of status filter
   const filteredPatents = searchQuery.trim()
     ? statusFilteredPatents.filter(p =>
         p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -211,7 +181,6 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
     ['expired', 'abandoned'].includes(getStatusShorthand(p.status))
   );
 
-  // Dynamic section title
   const sectionTitle = (() => {
     if (searchQuery.trim()) return `Results for "${searchQuery}"`;
     if (statusFilter && statusFilter !== 'all') {
@@ -225,6 +194,26 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
     }
     return 'Active Patents';
   })();
+
+  // Navigate to patent detail when clicking a notification row
+  const handleNotificationPatentClick = (patent) => {
+    navigate('/patent-detail', {
+      state: {
+        id: patent.id,
+        title: patent.title,
+        patentNumber: patent.patentNumber,
+        status: patent.status,
+        updatedAt: patent.updatedAt,
+        inventors: patent.inventors,
+        filedDate: patent.filedDate,
+        keywords: patent.keywords,
+        description: patent.description,
+        matchesCount: patent.matchesCount,
+        documentsCount: patent.documentsCount,
+        progress: patent.progress,
+      }
+    });
+  };
 
   return (
     <div className="dash-shell">
@@ -275,12 +264,12 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
           </div>
 
           <div className="tn-right">
-            <button className="tn-icon" aria-label="Notifications">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-            </button>
+            {/* ── Notification Bell ── */}
+            <NotificationBell
+              patents={mappedPatents}
+              onPatentClick={handleNotificationPatentClick}
+            />
+
             <div className="tn-vsep" />
             <Link to="/" className="tn-btn tn-btn--home">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -303,8 +292,6 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
         {/* ── Content ── */}
         <div className="dash-content">
 
-          {/* Alert — FIX 4: Removed hardcoded `|| true` so the alert only shows
-              when there are actual high risk matches or a real error. */}
           {!alertDismissed && (highRiskMatchesValue > 0 || ui.error) && (
             <div className="alert">
               <div className="alert-icon">
@@ -380,8 +367,6 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
               onClick={() => handleStatCardClick('patentsAnalyzed')}
               isActive={statusFilter === 'patentsAnalyzed'}
             />
-            {/* FIX 3 applied here: uses highRiskMatchesValue (backend || local sum)
-                instead of patents.stats.highRiskMatches || 0 */}
             <StatCard
               title="High Risk Matches"
               value={ui.loading ? '—' : highRiskMatchesValue}
@@ -487,7 +472,7 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
                   className="animate-fadeInUp"
                   style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
                 >
-                 <ProjectCard {...patent} riskLevel={patent.riskLevel} />
+                  <ProjectCard {...patent} riskLevel={patent.riskLevel} hasUpdates={patent.hasUpdates} />
                 </div>
               ))}
             </div>
@@ -556,91 +541,47 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
 
         .tn-search { position: relative; display: flex; align-items: center; }
         .tn-search-clear {
-          position: absolute;
-          right: 8px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-size: 16px;
-          line-height: 1;
-          color: var(--ink3);
-          padding: 0 2px;
-          display: flex;
-          align-items: center;
+          position: absolute; right: 8px; background: none; border: none;
+          cursor: pointer; font-size: 16px; line-height: 1; color: var(--ink3);
+          padding: 0 2px; display: flex; align-items: center;
         }
         .tn-search-clear:hover { color: var(--ink1); }
 
         .btn-filter-reset {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 5px 10px;
-          border-radius: 20px;
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 10px; border-radius: 20px;
           border: 1px solid var(--accent);
           background: color-mix(in srgb, var(--accent) 10%, transparent);
-          color: var(--accent);
-          font-size: 12px;
-          cursor: pointer;
-          font-weight: 500;
-          transition: background 0.15s;
+          color: var(--accent); font-size: 12px; cursor: pointer;
+          font-weight: 500; transition: background 0.15s;
         }
-        .btn-filter-reset:hover {
-          background: color-mix(in srgb, var(--accent) 20%, transparent);
-        }
+        .btn-filter-reset:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
-          margin-bottom: 32px;
-        }
-
-        .patents-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-        }
-
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+        .patents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .weekly-card { max-width: 100%; width: 100%; }
 
-        .tn-center    { display: flex; }
-        .tn-sep       { display: block; }
-        .tn-sub       { display: block; }
+        .tn-center { display: flex; }
+        .tn-sep { display: block; }
+        .tn-sub { display: block; }
         .tn-btn-label { display: inline; }
-        .btn-label    { display: inline; }
+        .btn-label { display: inline; }
         .tn-btn--home span { display: inline; }
 
         @media (max-width: 1279px) {
           .stats-grid { gap: 16px; }
-          .patents-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-          }
+          .patents-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
         }
-
         @media (max-width: 1023px) {
           .dash-content { padding: 20px 20px 40px !important; }
-          .tn-sep { display: none; }
-          .tn-sub { display: none; }
+          .tn-sep { display: none; } .tn-sub { display: none; }
           .tn-search input { width: 140px !important; }
-          .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            margin-bottom: 24px;
-          }
-          .patents-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-          }
-          .page-hd {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 12px !important;
-          }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 24px; }
+          .patents-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+          .page-hd { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
           .page-title { font-size: clamp(20px, 4vw, 28px) !important; }
           .sec-hd { flex-wrap: wrap; gap: 10px; }
         }
-
         @media (max-width: 767px) {
           .topnav { padding: 0 14px !important; height: 52px !important; }
           .tn-center { display: none; }
@@ -648,68 +589,36 @@ const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatch
           .tn-title { font-size: 13px !important; }
           .dash-content { padding: 16px 16px 40px !important; }
           .alert { padding: 10px 12px !important; font-size: 13px !important; }
-          .page-hd {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-            margin-bottom: 20px !important;
-          }
+          .page-hd { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; margin-bottom: 20px !important; }
           .page-title { font-size: 22px !important; }
           .hd-actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
-          .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-          }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
           .patents-grid { grid-template-columns: 1fr; gap: 12px; }
           .sec-hd { flex-wrap: wrap; gap: 10px; }
           .sec-title { font-size: 14px !important; }
         }
-
         @media (max-width: 599px) {
           .topnav { padding: 0 12px !important; height: 50px !important; }
-          .tn-center    { display: none; }
-          .tn-vsep      { display: none !important; }
-          .tn-btn--home { display: none !important; }
-          .tn-btn-label { display: none; }
+          .tn-center { display: none; } .tn-vsep { display: none !important; }
+          .tn-btn--home { display: none !important; } .tn-btn-label { display: none; }
           .tn-title { font-size: 12px !important; }
           .tn-btn svg { width: 15px; height: 15px; }
           .dash-content { padding: 14px 12px 40px !important; }
-          .alert {
-            flex-wrap: wrap;
-            padding: 10px 10px !important;
-            gap: 8px !important;
-          }
+          .alert { flex-wrap: wrap; padding: 10px 10px !important; gap: 8px !important; }
           .alert-body { font-size: 12px !important; flex: 1 1 0; min-width: 0; }
-          .page-hd {
-            flex-direction: column !important;
-            gap: 10px !important;
-            margin-bottom: 18px !important;
-          }
-          .page-eyebrow { font-size: 10px !important; }
-          .page-title   { font-size: 20px !important; }
+          .page-hd { flex-direction: column !important; gap: 10px !important; margin-bottom: 18px !important; }
+          .page-eyebrow { font-size: 10px !important; } .page-title { font-size: 20px !important; }
           .hd-actions { width: 100%; display: flex; gap: 8px; flex-wrap: wrap; }
           .btn-label { display: none; }
           .btn-export { padding: 7px 10px !important; min-width: unset !important; }
           .btn-new { flex: 1; justify-content: center !important; }
-          .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 18px;
-          }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 18px; }
           .patents-grid { grid-template-columns: 1fr; gap: 10px; }
-          .sec-hd {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 10px;
-            padding: 12px 0 !important;
-          }
+          .sec-hd { flex-direction: column; align-items: flex-start !important; gap: 10px; padding: 12px 0 !important; }
           .sec-hd-right { align-self: flex-end; }
-          .sec-title  { font-size: 13px !important; }
-          .sec-eye    { font-size: 9px !important; }
+          .sec-title { font-size: 13px !important; } .sec-eye { font-size: 9px !important; }
           .pcard-title { font-size: 14px !important; }
         }
-
         @media (max-width: 379px) {
           .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
           .page-title { font-size: 18px !important; }

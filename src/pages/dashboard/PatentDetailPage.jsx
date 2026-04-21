@@ -1268,20 +1268,82 @@ useEffect(() => {
             </SectionCard>
           </div>
 
-          {/* ── Search Limitations ── */}
-          <SectionCard
-            title="Search Limitations"
-            eyebrow="User Defined"
-            icon={Search}
-          >
-            <SearchLimitationEditor
-              caseId={caseId}
-              initialData={caseData?.searchLimitations}
-              onSave={(data) =>
-                setCaseData(prev => ({ ...prev, searchLimitations: data }))
-              }
-            />
-          </SectionCard>
+          {/* ── Search Limitations + Related IDs — side by side ── */}
+          <div className="pd-sl-ri-row">
+
+            {/* ── Search Limitations ── */}
+            <SectionCard title="Search Limitations" eyebrow="User Defined" icon={Search}>
+              <SearchLimitationEditor
+                caseId={caseId}
+                initialData={caseData?.searchLimitations}
+                onSave={(data) =>
+                  setCaseData(prev => ({ ...prev, searchLimitations: data }))
+                }
+              />
+            </SectionCard>
+
+            {/* ── Related IDs ── */}
+            <SectionCard title="Related IDs" eyebrow="Patent Family" icon={FileText}>
+              {caseData?.other_ids?.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {caseData.other_ids.map((item, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 12,
+                        padding: '9px 0',
+                        borderBottom: i < caseData.other_ids.length - 1
+                          ? '1px solid var(--rule2)'
+                          : 'none',
+                      }}
+                    >
+                      {/* label */}
+                      <span style={{
+                        fontFamily: "'Inconsolata', monospace",
+                        fontSize: 10,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.10em',
+                        color: 'var(--ink3)',
+                        flexShrink: 0,
+                        width: 130,
+                        paddingTop: 2,
+                      }}>
+                        {item.title || '—'}
+                      </span>
+
+                      {/* value — monospace pill */}
+                      <span style={{
+                        fontFamily: "'Inconsolata', monospace",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--accent)',
+                        background: 'var(--acc-soft)',
+                        border: '1px solid var(--acc-border, color-mix(in srgb, var(--accent) 20%, transparent))',
+                        borderRadius: 5,
+                        padding: '2px 9px',
+                        letterSpacing: '0.04em',
+                        wordBreak: 'break-all',
+                      }}>
+                        {item.value || '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{
+                  fontSize: 13.5,
+                  color: 'var(--ink3)',
+                  margin: 0,
+                  fontStyle: 'italic',
+                }}>
+                  No related IDs available.
+                </p>
+              )}
+            </SectionCard>
+
+          </div>
 
           {/* ── Documents ── */}
           <SectionCard
@@ -1796,6 +1858,17 @@ useEffect(() => {
           .dash-content { padding: 10px 10px 24px !important; }
           .pd-doc-inner { width: 5.5rem; height: 7rem; }
           .page-title { font-size: clamp(15px, 5vw, 24px) !important; }
+        }
+          /* ── Search Limitations + Related IDs row ── */
+        .pd-sl-ri-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 0;  /* SectionCard already adds margin-bottom: 20px */
+        }
+
+        @media (max-width: 900px) {
+          .pd-sl-ri-row { grid-template-columns: 1fr; }
         }
       `}</style>
 

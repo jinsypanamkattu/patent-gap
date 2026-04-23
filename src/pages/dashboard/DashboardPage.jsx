@@ -126,9 +126,9 @@ export default function DashboardPage() {
 
     const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
     const lastUpdated = p.last_updated || p.updated_date || p.lastUpdated;
-    const hasUpdates  = lastUpdated && lastViewed
-      ? new Date(lastUpdated) > lastViewed
-      : Boolean(lastUpdated);
+    const hasUpdates = lastUpdated && lastViewed
+        ? new Date(lastUpdated) > lastViewed
+        : false;  // ← if either is missing, no badge
 
     return {
       id: p._id,

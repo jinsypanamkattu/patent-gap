@@ -36,11 +36,11 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
 
   const filingDateMax = formatLocalDateInputValue(new Date());
 
+  
   const isValid =
-    projectName.trim() &&
-    (activeTab === 'upload'
-      ? !!selectedFile && localPatentId.trim()
-      : patentNumber.trim());
+        activeTab === 'upload'
+          ? !!(projectName.trim() && selectedFile && localPatentId.trim())
+          : !!patentNumber.trim();
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -95,28 +95,28 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
         });*/
 
         // 4. Get claims
-       /* setLoadingStatus('claims');
+        setLoadingStatus('claims');
         let claims = [];
         try {
           claims = await patentApi.getClaims(caseId);
         } catch (e) {
           console.warn('getClaims failed (non-blocking):', e.message);
-        }*/
+        }
 
         // 5. Get infringement analysis
-       /* setLoadingStatus('infringement');
+        setLoadingStatus('infringement');
         let infringements = [];
         try {
           const analysisData = await patentApi.getInfringementAnalysis(caseId);
           infringements = analysisData?.similar_infringements || [];
         } catch (e) {
           console.warn('getInfringementAnalysis failed (non-blocking):', e.message);
-        }*/
+        }
 
         // 6. Persist results
-        /*if (infringements.length > 0 || claims.length > 0) {
+        if (infringements.length > 0 || claims.length > 0) {
           await patentApi.updateCase(caseId, { infringements, claims }).catch(() => {});
-        }*/
+        }
 
         // 7. Signal parent to close + navigate — skip Step 2
         onContinue({ skipStep2: true, caseId });

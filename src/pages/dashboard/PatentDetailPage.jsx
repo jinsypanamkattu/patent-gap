@@ -87,6 +87,7 @@ const getSourceName = (id = '') => {
 // Product format → has product_id, product_name, product_url
 // ─────────────────────────────────────────────────────────────
 const normaliseMatch = (m) => {
+  console.log('Normalising match:123', m);
   const isProduct = Boolean(m.product_id);
 
   if (isProduct) {
@@ -109,8 +110,8 @@ const normaliseMatch = (m) => {
     return {
       type:          'patent',
       title:         m.entry_title   || m.title || 'Untitled',
-      id:            m.entry_id      || m.patent || 'N/A',
-      url:           m.entry_url     || null,
+      id:            m.entry_id      || m.patent || m.case_id || 'N/A',
+      url:           m.document_urls?.[0] || m.entry_url || m.url || null,
       source:        m.source        || 'unknown',
       score:         calculateOverlapScore(m.similar_claims),
       badge:         calculateOverallRisk(m.similar_claims),
@@ -119,7 +120,7 @@ const normaliseMatch = (m) => {
       claims:        m.similar_claims?.map(c => c.claim) || [],
       company:       m.company       || null,
       matchedClaims: m.similar_claims?.map(c => c.claim) || null,
-      _entryId:      m.entry_id      || m.patent,
+      _entryId:      m.entry_id      || m.patent || m.case_id,
     };
   }
 };

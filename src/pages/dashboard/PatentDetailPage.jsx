@@ -87,7 +87,9 @@ const getSourceName = (id = '') => {
 // Product format → has product_id, product_name, product_url
 // ─────────────────────────────────────────────────────────────
 const normaliseMatch = (m) => {
+
   console.log('Normalising match:123', m);
+
   const isProduct = Boolean(m.product_id);
 
   if (isProduct) {
@@ -111,13 +113,16 @@ const normaliseMatch = (m) => {
       type:          'patent',
       title:         m.entry_title   || m.title || 'Untitled',
       id:            m.entry_id      || m.patent || m.case_id || 'N/A',
-      url:           m.document_urls?.[0] || m.entry_url || m.url || null,
-      source:        m.source        || 'unknown',
+      url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url     || m.url || null,
+      source:        m.source  || m.documents?.[0]?.source   || 'unknown',
       score:         calculateOverlapScore(m.similar_claims),
       badge:         calculateOverallRisk(m.similar_claims),
       riskLevel:     calculateOverallRisk(m.similar_claims),
       similarClaims: m.similar_claims || [],
-      claims:        m.similar_claims?.map(c => c.claim) || [],
+      //claims:        m.claims || m.similar_claims?.map(c => c.claim) || [],
+      claims: Array.isArray(m.claims) && m.claims.length > 0
+          ? m.claims
+          : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
       company:       m.company       || null,
       matchedClaims: m.similar_claims?.map(c => c.claim) || null,
       _entryId:      m.entry_id      || m.patent || m.case_id,
@@ -690,11 +695,26 @@ const PatentDetailPage = () => {
   const pollIntervalRef = useRef(null);
 
   const mappedPatentsForBell = patents.patents.map(p => {
-    const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+    /*const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
     const lastUpdated = p.last_updated || p.updated_date || p.lastUpdated;
     const hasUpdates = lastUpdated && lastViewed
       ? new Date(lastUpdated) > lastViewed
-      : false;  // ← if either is missing, no badge
+      : false;  // ← if either is missing, no badge*/
+      const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+
+      const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
+
+      // Normalize RFC 2822 → safe ISO string before parsing
+      const lastUpdated = rawUpdated
+        ? new Date(rawUpdated.replace(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/, '$4-$3-$2T$5Z'))
+        : null;
+
+      // Guard against NaN from bad date strings
+      const isValid = (d) => d instanceof Date && !isNaN(d);
+
+      const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+        ? lastUpdated > lastViewed
+        : false;
     return {
       id:             p._id,
       title:          p.title || p.name || 'Untitled Project',
@@ -735,13 +755,15 @@ const PatentDetailPage = () => {
 
   const displayClaims = caseData?.claims || [];
 
+
+
   const realMatches = caseData?.infringements || [];
   console.log('📋 Raw infringements from API:', realMatches);
 
   const potentialMatches = realMatches.length > 0
     ? realMatches.map(m => {
         const normalised = normaliseMatch(m);
-        console.log(`🔍 [${normalised.type.toUpperCase()}] Normalised match:`, normalised);
+        console.log(`🔍 [${normalised.type.toUpperCase()}] Normalised match789:`, normalised);
         return normalised;
       })
     : [];
@@ -775,16 +797,6 @@ const PatentDetailPage = () => {
     try {
       setPageLoading(true);
       const c = await loadCase();
-
-      // ── TEMP: static test data — remove before production ──
-   /* c.other_ids = [
-      { title: 'Parent Application',  value: 'US10203040B2'     },
-      { title: 'Priority Claim',      value: 'US62/123456'      },
-      { title: 'PCT Application',     value: 'WO2021123456A1'   },
-      { title: 'EP Equivalent',       value: 'EP3456789A1'      },
-      { title: 'Continuation',        value: 'US20220123456A1'  },
-    ];*/
-    // ── END TEMP ──
 
     
 
@@ -866,6 +878,7 @@ useEffect(() => {
 useEffect(() => {
   if (!caseId) return;
 
+console.log('📅 Tracking last_viewed for caseId:', caseId);
   const updateLastViewed = () => {
     patentApi.updateCase(caseId, {
       last_viewed: new Date().toISOString(),

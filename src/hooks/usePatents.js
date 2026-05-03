@@ -21,6 +21,7 @@ export const usePatents = () => {
   // ✅ Wrapped in useCallback — stable reference, won't cause infinite loops
   const loadPatents = useCallback(async (page = 1, append = false) => {
     try {
+
       const result = await patentApi.getMyCases(page);
       const cases = result?.items || [];
       const pagination = result?.pagination || {};
@@ -36,6 +37,7 @@ export const usePatents = () => {
         totalPages: pagination.total_pages || 0,
         hasNext: !!pagination.has_next,
       }));
+
 
       const calculatedStats = {
         activeScans: cases.filter(c => c.status === 'processing').length,

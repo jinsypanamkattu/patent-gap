@@ -32,18 +32,27 @@ export const patentApi = {
 
   getMyCases: async (page = 1) => {
     try {
+
       const { data } = await axiosInstance.get('/my-cases', { params: { page } });
       return {
         items: data.items || [],
         pagination: data.pagination || {},
       };
+
     } catch (error) {
+
+      console.error('❌ getMyCases error:', error);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error message:', error.message);
+      
       apiError(error, 'Failed to fetch cases');
     }
   },
 
   getCaseById: async (caseId) => {
     try {
+      console.log('📤 Fetching case with ID:', caseId);
       const { data } = await axiosInstance.get(`/cases/${caseId}`);
       return data.case;
     } catch (error) {
@@ -201,7 +210,9 @@ export const patentApi = {
   },
 
   updateCase: async (caseId, updateData) => {
+
     try {
+      console.log('📝 updateCase called with:', { caseId, updateData });
       const payload = { _id: caseId, ...updateData };
       console.log('📝 updateCase called:', { caseId, payload });
       const { data } = await axiosInstance.post(`/update-patent`, payload);
@@ -267,6 +278,7 @@ export const patentApi = {
 
   getDocumentStream: async (url) => {
     try {
+      console.log('Streaming document from URL:', url);
       const { data } = await axiosInstance.get(url, { responseType: 'blob' });
       return data;
     } catch (error) {

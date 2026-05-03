@@ -22,9 +22,9 @@ const formatSimilarityScore = (score) => `${Math.round(score * 100)}%`;
 // Detect which format a raw infringement object uses and
 // return a normalised shape the modal can consume uniformly.
 // ─────────────────────────────────────────────────────────────
-const normaliseInfringement = (raw) => {
-  if (!raw) return null;
-  const isProduct = Boolean(raw.product_id);
+const normaliseInfringement = (m) => {
+  if (!m) return null;
+  /*const isProduct = Boolean(raw.product_id);
   return {
     type:         isProduct ? 'product' : 'patent',
     title:        isProduct ? (raw.product_name  || 'Untitled Product') : (raw.entry_title || 'Untitled'),
@@ -36,7 +36,50 @@ const normaliseInfringement = (raw) => {
     sameAsPatent: raw.same_as_patent || false,
     // product-only: the product's own claims array
     productClaims: isProduct ? (raw.claims || []) : [],
-  };
+  };*/
+  console.log('🔍 Normalising match234:', m);
+  const isProduct = Boolean(m.product_id);
+
+  if (isProduct) {
+    return {
+      type:          'product',
+      title:         m.product_name  || 'Untitled Product',
+      id:            m.product_id    || 'N/A',
+      url:           m.product_url   || null,
+      source:        m.source        || 'unknown',
+      score:         calculateOverlapScore(m.similar_claims),
+      badge:         calculateOverallRisk(m.similar_claims),
+      riskLevel:     calculateOverallRisk(m.similar_claims),
+      similarClaims: m.similar_claims || [],
+      claims:        m.claims        || m.similar_claims?.map(c => c.claim) || [],
+      company:       null,
+      matchedClaims: null,
+      _entryId:      m.product_id,
+      // product-only: the product's own claims array
+    productClaims: isProduct ? (m.claims || []) : [],
+    };
+  } else {
+    return {
+      type:          'patent',
+      title:         m.entry_title   || m.title || 'Untitled',
+      id:            m.entry_id      || m.patent || m.case_id || 'N/A',
+      url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url     || m.url || null,
+      source:        m.source  || m.documents?.[0]?.source   || 'unknown',
+      score:         calculateOverlapScore(m.similar_claims),
+      badge:         calculateOverallRisk(m.similar_claims),
+      riskLevel:     calculateOverallRisk(m.similar_claims),
+      similarClaims: m.similar_claims || [],
+      //claims:        m.claims || m.similar_claims?.map(c => c.claim) || [],
+      claims: Array.isArray(m.claims) && m.claims.length > 0
+          ? m.claims
+          : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
+      company:       m.company       || null,
+      matchedClaims: m.similar_claims?.map(c => c.claim) || null,
+      _entryId:      m.entry_id      || m.patent || m.case_id,
+      // patent-only
+    sameAsPatent: m.same_as_patent || false,
+    };
+  }
 };
 
 const InfringementModal = ({

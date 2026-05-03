@@ -93,7 +93,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
        /* patentApi.triggerSimilarityAnalysis(caseId, keywords).catch(err => {
           console.warn('Similarity analysis trigger failed (non-blocking):', err.message);
         });*/
-
+        console.log("checking caseId, keywords:", caseId, keywords);
         // 4. Get claims
         setLoadingStatus('claims');
         let claims = [];
@@ -104,18 +104,21 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
         }
 
         // 5. Get infringement analysis
-        setLoadingStatus('infringement');
+       /* setLoadingStatus('infringement');
         let infringements = [];
         try {
           const analysisData = await patentApi.getInfringementAnalysis(caseId);
           infringements = analysisData?.similar_infringements || [];
         } catch (e) {
           console.warn('getInfringementAnalysis failed (non-blocking):', e.message);
-        }
+        }*/
 
         // 6. Persist results
-        if (infringements.length > 0 || claims.length > 0) {
+       /* if (infringements.length > 0 || claims.length > 0) {
           await patentApi.updateCase(caseId, { infringements, claims }).catch(() => {});
+        }*/
+       if (claims.length > 0) {
+          await patentApi.updateCase(caseId, { claims }).catch(() => {});
         }
 
         // 7. Signal parent to close + navigate — skip Step 2

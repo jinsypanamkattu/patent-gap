@@ -101,6 +101,12 @@ export default function DashboardPage() {
   const searchQuery  = patents.filters.searchQuery;
   const statusFilter = patents.filters.status;
 
+  const doLogout = async () => {
+  await logout()        // waits for: authApi.logout() + localStorage.removeItem + dispatch(logout())
+  navigate('/login')    // now runs after auth state is fully cleared
+  
+}
+
   useEffect(() => {
     clearError();
     handleLoadDashboard();
@@ -148,11 +154,27 @@ export default function DashboardPage() {
   const mappedPatents = patents.patents.map(p => {
     const riskLevel = calculatePatentRisk(p.infringements || []);
 
-    const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+   /* const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
     const lastUpdated = p.last_updated || p.updated_date || p.lastUpdated;
     const hasUpdates = lastUpdated && lastViewed
         ? new Date(lastUpdated) > lastViewed
-        : false;  // ← if either is missing, no badge
+        : false;  // ← if either is missing, no badge*/
+
+        const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+
+        const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
+
+        // Normalize RFC 2822 → safe ISO string before parsing
+        const lastUpdated = rawUpdated
+          ? new Date(rawUpdated.replace(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/, '$4-$3-$2T$5Z'))
+          : null;
+
+        // Guard against NaN from bad date strings
+        const isValid = (d) => d instanceof Date && !isNaN(d);
+
+        const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+          ? lastUpdated > lastViewed
+          : false;
 
     return {
       id: p._id,
@@ -302,7 +324,7 @@ export default function DashboardPage() {
               </svg>
               <span>Home</span>
             </Link>
-            <button className="tn-btn" onClick={() => { logout(); }}>
+            <button className="tn-btn" onClick={() => { doLogout(); }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>

@@ -1,9 +1,10 @@
 // ===========================
 // FILE: InfringementModal.jsx
 // ===========================
-// Supports two infringement formats:
-//   Patent  → entry_id, entry_title, entry_url, similar_claims
-//   Product → product_id, product_name, product_url, claims, similar_claims (with justification)
+// Supports three infringement formats:
+//   Patent      → entry_id, entry_title, entry_url, similar_claims
+//   Product     → product_id, product_name, product_url, claims, similar_claims (with justification)
+//   Nested Case → case_id, infringements[] with { ref_claim, claim, calculated_similarity_score }
 // ===========================
 
 import { createPortal } from 'react-dom';
@@ -19,72 +20,94 @@ const getSimilarityScoreClass = (score) => {
 const formatSimilarityScore = (score) => `${Math.round(score * 100)}%`;
 
 // ─────────────────────────────────────────────────────────────
-// Detect which format a raw infringement object uses and
-// return a normalised shape the modal can consume uniformly.
+// calculateOverlapScore
+// Accepts any of these array shapes:
+//   • similar_claims[]  → uses item.similarity_score
+//   • infringements[]   → uses item.calculated_similarity_score
+// Returns a 0–100 integer representing the average score.
+// ─────────────────────────────────────────────────────────────
+const calculateOverlapScore = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  const scores = items
+    .map((item) =>
+      item?.calculated_similarity_score ?? item?.similarity_score ?? null
+    )
+    .filter((s) => s !== null && !isNaN(s));
+
+  if (scores.length === 0) return 0;
+
+  const average = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return Math.round(average * 100);
+};
+
+// ─────────────────────────────────────────────────────────────
+// calculateOverallRisk
+// Derives 'high' | 'medium' | 'low' from the average score.
+// ─────────────────────────────────────────────────────────────
+const calculateOverallRisk = (items) => {
+  const score = calculateOverlapScore(items) / 100;
+  if (score >= 0.9) return 'high';
+  if (score >= 0.7) return 'medium';
+  return 'low';
+};
+
+// ─────────────────────────────────────────────────────────────
+// Normalise a raw infringement object into a uniform shape.
 // ─────────────────────────────────────────────────────────────
 const normaliseInfringement = (m) => {
   if (!m) return null;
-  /*const isProduct = Boolean(raw.product_id);
-  return {
-    type:         isProduct ? 'product' : 'patent',
-    title:        isProduct ? (raw.product_name  || 'Untitled Product') : (raw.entry_title || 'Untitled'),
-    id:           isProduct ? (raw.product_id    || 'N/A')              : (raw.entry_id    || 'N/A'),
-    url:          isProduct ? (raw.product_url   || null)               : (raw.entry_url   || null),
-    source:       raw.source || 'unknown',
-    similarClaims: raw.similar_claims || [],
-    // patent-only
-    sameAsPatent: raw.same_as_patent || false,
-    // product-only: the product's own claims array
-    productClaims: isProduct ? (raw.claims || []) : [],
-  };*/
-  console.log('🔍 Normalising match234:', m);
+
+  // Nested-case format — has case_id + its own infringements[]
+  if (m.case_id && Array.isArray(m.infringements)) {
+    return {
+      type:          'patent',
+      title:         m.entry_title || m.title || `Case ${m.case_id}`,
+      id:            m.case_id,
+      url:           m.document_urls?.[0] || m.entry_url || null,
+      source:        m.source || 'unknown',
+      score:         calculateOverlapScore(m.infringements),
+      riskLevel:     calculateOverallRisk(m.infringements),
+      similarClaims: m.infringements,
+      sameAsPatent:  m.same_as_patent || false,
+      _isNestedCase: true,
+    };
+  }
+
   const isProduct = Boolean(m.product_id);
 
   if (isProduct) {
     return {
       type:          'product',
-      title:         m.product_name  || 'Untitled Product',
-      id:            m.product_id    || 'N/A',
-      url:           m.product_url   || null,
-      source:        m.source        || 'unknown',
+      title:         m.product_name || 'Untitled Product',
+      id:            m.product_id   || 'N/A',
+      url:           m.product_url  || null,
+      source:        m.source       || 'unknown',
       score:         calculateOverlapScore(m.similar_claims),
-      badge:         calculateOverallRisk(m.similar_claims),
       riskLevel:     calculateOverallRisk(m.similar_claims),
       similarClaims: m.similar_claims || [],
-      claims:        m.claims        || m.similar_claims?.map(c => c.claim) || [],
-      company:       null,
-      matchedClaims: null,
-      _entryId:      m.product_id,
-      // product-only: the product's own claims array
-    productClaims: isProduct ? (m.claims || []) : [],
-    };
-  } else {
-    return {
-      type:          'patent',
-      title:         m.entry_title   || m.title || 'Untitled',
-      id:            m.entry_id      || m.patent || m.case_id || 'N/A',
-      url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url     || m.url || null,
-      source:        m.source  || m.documents?.[0]?.source   || 'unknown',
-      score:         calculateOverlapScore(m.similar_claims),
-      badge:         calculateOverallRisk(m.similar_claims),
-      riskLevel:     calculateOverallRisk(m.similar_claims),
-      similarClaims: m.similar_claims || [],
-      //claims:        m.claims || m.similar_claims?.map(c => c.claim) || [],
-      claims: Array.isArray(m.claims) && m.claims.length > 0
-          ? m.claims
-          : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
-      company:       m.company       || null,
-      matchedClaims: m.similar_claims?.map(c => c.claim) || null,
-      _entryId:      m.entry_id      || m.patent || m.case_id,
-      // patent-only
-    sameAsPatent: m.same_as_patent || false,
+      productClaims: m.claims        || [],
     };
   }
+
+  return {
+    type:          'patent',
+    title:         m.entry_title || m.title || 'Untitled',
+    id:            m.entry_id   || m.patent || m.case_id || 'N/A',
+    url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url || m.url || null,
+    source:        m.source || m.documents?.[0]?.source || 'unknown',
+    score:         calculateOverlapScore(m.similar_claims),
+    riskLevel:     calculateOverallRisk(m.similar_claims),
+    similarClaims: m.similar_claims || [],
+    claims: Array.isArray(m.claims) && m.claims.length > 0
+        ? m.claims
+        : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
+    sameAsPatent:  m.same_as_patent || false,
+  };
 };
 
 const InfringementModal = ({
   match,
-  patentTitle,
   patentNumber,
   caseId,
   infringementId,
@@ -93,8 +116,7 @@ const InfringementModal = ({
   if (!match) return null;
 
   const [caseData,     setCaseData]     = useState(null);
-  const [rawInfData,   setRawInfData]   = useState(null);   // raw API object
-  const [normInfData,  setNormInfData]  = useState(null);   // normalised
+  const [normInfData,  setNormInfData]  = useState(null);
   const [sameAsPatent, setSameAsPatent] = useState(false);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
@@ -123,20 +145,18 @@ const InfringementModal = ({
         const fetchedCase = await patentApi.getCaseById(caseId);
         setCaseData(fetchedCase);
 
-        // Find by entry_id OR product_id
         const found = (fetchedCase.infringements || []).find(
-          (inf) => inf.entry_id === infringementId || inf.product_id === infringementId
+          (inf) =>
+            inf.entry_id    === infringementId ||
+            inf.product_id  === infringementId ||
+            inf.case_id     === infringementId
         );
 
-        setRawInfData(found || null);
         const normalised = normaliseInfringement(found);
         setNormInfData(normalised);
 
-        console.log('📋 Raw infringement in modal:', found);
-        console.log('📋 Normalised infringement:', normalised);
-
-        // Same-patent check only makes sense for patent type
-        if (found && normalised?.type === 'patent') {
+        // Same-patent check only for non-nested patent type
+        if (found && normalised?.type === 'patent' && !normalised?._isNestedCase) {
           if (found.same_as_patent) {
             setSameAsPatent(true);
           } else {
@@ -155,39 +175,51 @@ const InfringementModal = ({
   }, [caseId, infringementId]);
 
   // ── Derived display values ──
-  // Prefer fresh API data; fall back to the match prop passed from the card
   const isProduct  = normInfData ? normInfData.type === 'product' : match.type === 'product';
+  const isNested   = normInfData?._isNestedCase || false;
   const title      = normInfData?.title   || match.title || 'Infringement Details';
   const entryId    = normInfData?.id      || match.id    || 'N/A';
   const source     = normInfData?.source  || match.source || (isProduct ? 'Amazon' : 'Google Patents');
   const entryUrl   = normInfData?.url     || match.url   || null;
   const caseLabel  = caseId ? (caseId.split('_')[1] || caseId) : (patentNumber || 'N/A');
 
-  const riskLevel  = match.riskLevel || 'low';
+  // ── Score, risk & badge — always derived from the calculated average ──
+  // normInfData.score is the 0-100 average computed by calculateOverlapScore.
+  // Falls back to match.score only while the API fetch is still in flight.
+  const scoreNum   = normInfData?.score     ?? match.score     ?? 0;
+  const riskLevel  = normInfData?.riskLevel ?? match.riskLevel ?? 'low';
   const isHigh     = riskLevel === 'high';
   const isMedium   = riskLevel === 'medium';
   const riskColor  = isHigh ? 'var(--red)' : isMedium ? 'var(--amber)' : 'var(--accent)';
   const riskBg     = isHigh ? 'var(--red-soft)' : isMedium ? 'var(--amber-soft)' : 'var(--acc-soft)';
-  const scoreNum   = match.score || 0;
 
-  // Product claims (the product's own described claims)
+  // Product claims
   const productClaims = normInfData?.productClaims || match.claims || [];
 
   // ── Build claim chart rows ──
-  // Patent format: zip caseData.claims with similar_claims by index
-  // Product format: similar_claims already carry 'claim' + optional 'justification'
   const claimRows = (() => {
-    const similarClaims = normInfData?.similarClaims || rawInfData?.similar_claims || match.similarClaims || [];
+    const similarClaims = normInfData?.similarClaims || match.similarClaims || [];
+
+    // Nested-case format: { ref_claim, claim, calculated_similarity_score }
+    if (isNested) {
+      return similarClaims.map((row, index) => ({
+        claimNumber:     index + 1,
+        yourClaim:       row.ref_claim   || '—',
+        similarClaim:    row.claim       || null,
+        similarityScore: row.calculated_similarity_score ?? null,
+        urlToClaim:      row.url_to_claim || null,
+        justification:   null,
+      }));
+    }
 
     if (isProduct) {
-      // Product: each row comes directly from similar_claims
       return similarClaims.map((sc, index) => ({
         claimNumber:     index + 1,
-        yourClaim:       productClaims[index] || '—',    // product's own claim at same index
+        yourClaim:       productClaims[index] || '—',
         similarClaim:    sc.claim             || null,
         similarityScore: sc.similarity_score  ?? null,
         urlToClaim:      sc.url_to_claim      || null,
-        justification:   sc.justification     || null,   // product-only field
+        justification:   sc.justification     || null,
       }));
     } else {
       // Patent: zip caseData.claims with similar_claims
@@ -503,7 +535,7 @@ const InfringementModal = ({
               </h1>
 
               <div className="_im_chips">
-                {/* Type pill — PATENT or PRODUCT */}
+                {/* Type pill */}
                 <span
                   className="_im_type_pill"
                   data-type={isProduct ? 'product' : 'patent'}
@@ -543,8 +575,8 @@ const InfringementModal = ({
         {/* ── BODY ── */}
         <div className="_im_body">
 
-          {/* Same-patent warning (patent type only) */}
-          {sameAsPatent && !isProduct && (
+          {/* Same-patent warning (standard patent type only, not nested) */}
+          {sameAsPatent && !isProduct && !isNested && (
             <div style={{
               display:'flex', alignItems:'flex-start', gap:10,
               background:'var(--amber-soft)',
@@ -680,11 +712,16 @@ const InfringementModal = ({
                     <thead>
                       <tr>
                         <th style={{ width:68 }}>Claim #</th>
-                        <th style={{ width:'30%' }}>{isProduct ? 'Product Claim' : 'Your Patent Claim'}</th>
-                        <th>Similar Infringing Claim</th>
+                        {/* Column header adapts to format */}
+                        <th style={{ width:'30%' }}>
+                          {isNested ? 'Reference Claim' : isProduct ? 'Product Claim' : 'Your Patent Claim'}
+                        </th>
+                        <th>
+                          {isNested ? 'Matched Claim' : 'Similar Infringing Claim'}
+                        </th>
                         <th style={{ width:112 }}>Similarity</th>
                         {/* Justification column — product only */}
-                        {isProduct && <th style={{ width:'22%' }}>Justification</th>}
+                        {isProduct && !isNested && <th style={{ width:'22%' }}>Justification</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -728,8 +765,8 @@ const InfringementModal = ({
                                   <span style={{ color:'var(--ink3)', fontSize:12 }}>—</span>
                                 )}
                               </td>
-                              {/* Justification cell — product only */}
-                              {isProduct && (
+                              {/* Justification cell — product only, not nested */}
+                              {isProduct && !isNested && (
                                 <td>
                                   {row.justification ? (
                                     <div className="_im_justification">
@@ -745,7 +782,7 @@ const InfringementModal = ({
                         })
                       ) : (
                         <tr>
-                          <td colSpan={isProduct ? 5 : 4} style={{ textAlign:'center', padding:'36px 14px', color:'var(--ink3)', fontFamily:"'Inconsolata',monospace", fontSize:12 }}>
+                          <td colSpan={isProduct && !isNested ? 5 : 4} style={{ textAlign:'center', padding:'36px 14px', color:'var(--ink3)', fontFamily:"'Inconsolata',monospace", fontSize:12 }}>
                             No claim data available
                           </td>
                         </tr>

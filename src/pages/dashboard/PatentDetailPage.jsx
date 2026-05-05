@@ -758,6 +758,9 @@ const PatentDetailPage = () => {
 
 
   const realMatches = caseData?.infringements || [];
+  /*const realMatches = (caseData?.infringements || []).filter(
+      infringement => !new Set(caseData?.excluded_case_ids ?? []).has(infringement.case_id)
+    );*/
   console.log('📋 Raw infringements from API:', realMatches);
 
   const potentialMatches = realMatches.length > 0
@@ -782,6 +785,8 @@ const PatentDetailPage = () => {
 
         const loadCase = useCallback(async () => {
         const c = await patentApi.getCaseById(caseId);
+        console.log('📦 Loaded case data:', c);
+        
         // Only fetch chart if infringements already exist
         if (c?.infringements?.length > 0 && c?.claims?.length > 0) {
           try {
@@ -1656,14 +1661,37 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
               updatedAt={updatedAt}
               caseId={caseId}
               onSelect={setSelectedMatch}
-              onExclude={(excludedId) =>
+              onExclude={(excludedId) => {
+                const updatedInfringements = (caseData?.infringements || []).filter(
+                  inf => (inf.product_id || inf.entry_id || inf.patent || inf.case_id) !== excludedId
+                );
+                const updatedExcludedIds = [...(caseData?.excluded_case_ids || []), excludedId];
+                const updatedExcludedTitles = [
+                  ...(caseData?.excluded_titles || []),
+                  caseData?.infringements?.find(
+                    inf => (inf.product_id || inf.entry_id || inf.patent || inf.case_id) === excludedId
+                  )?.entry_title || ''
+                ];
+
+                // Update backend with full arrays
+                patentApi.updateCase(caseId, {
+                  infringements: updatedInfringements,
+                  excluded_case_ids: [excludedId],
+                  excluded_titles: [
+                    caseData?.infringements?.find(
+                      inf => (inf.product_id || inf.entry_id || inf.patent || inf.case_id) === excludedId
+                    )?.entry_title || ''
+                  ],
+                });
+
+                // Update local state
                 setCaseData(prev => ({
                   ...prev,
-                  infringements: (prev?.infringements || []).filter(
-                    inf => (inf.product_id || inf.entry_id || inf.patent) !== excludedId
-                  ),
-                }))
-              }
+                  infringements: updatedInfringements,
+                  excluded_case_ids: updatedExcludedIds,
+                  excluded_titles: updatedExcludedTitles,
+                }));
+              }}
             />
             
           ))}

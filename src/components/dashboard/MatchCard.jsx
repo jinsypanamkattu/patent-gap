@@ -15,21 +15,18 @@ console.log('🃏 MatchCard — full match object:', JSON.stringify(match, null,
   const isProduct      = match.type === 'product';
 
   const handleExclude = async (e) => {
-    e.stopPropagation();
-    const confirmed = window.confirm('Do you really want to exclude this infringement?');
-    if (!confirmed) return;
+  e.stopPropagation();
+  const confirmed = window.confirm('Do you really want to exclude this infringement?');
+  if (!confirmed) return;
 
-    try {
-      console.log(`🚫 Excluding match [${match.type}]:`, match);
-      await patentApi.updateCase(caseId, {
-        excluded_case_ids: [match.id],
-      });
-      onExclude?.(match.id);
-    } catch (err) {
-      console.error('Failed to exclude infringement:', err.message);
-      alert('Failed to exclude this infringement. Please try again.');
-    }
-  };
+  try {
+    console.log(`🚫 Excluding match [${match.type}]:`, match);
+    onExclude?.(match.id); // ← parent handles everything
+  } catch (err) {
+    console.error('Failed to exclude infringement:', err.message);
+    alert('Failed to exclude this infringement. Please try again.');
+  }
+};
 
   return (
     <div

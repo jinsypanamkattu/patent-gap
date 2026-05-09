@@ -114,7 +114,7 @@ console.log('🃏 MatchCard — full match object:', JSON.stringify(match, null,
           <span style={{
             fontFamily: "'Libre Baskerville', serif",
             fontSize: 14, fontWeight: 700,
-            color: isHigh ? 'var(--red)' : isMedium ? 'var(--amber)' : 'var(--accent)',
+            color: isHigh ? 'var(--red)' : isMedium ? 'var(--amber)' : 'var(--green)',
           }}>
             {match.score}%
           </span>
@@ -122,11 +122,11 @@ console.log('🃏 MatchCard — full match object:', JSON.stringify(match, null,
 
         <div className="prog-track">
           <div
-            className={`prog-fill ${isHigh ? 'red' : isMedium ? 'grey' : 'green'}`}
+            className={`prog-fill ${isHigh ? 'red' : isMedium ? 'amber' : 'green'}`}
             style={{ width: `${match.score}%` }}
           />
         </div>
-
+        {/*
         {match.matchedClaims && (
           <div style={{
             fontSize: 10, color: 'var(--ink3)',
@@ -135,6 +135,7 @@ console.log('🃏 MatchCard — full match object:', JSON.stringify(match, null,
             Claims: {match.matchedClaims.join(', ')}
           </div>
         )}
+          */}
       </div>
 
       {/* ── Footer: timestamp + live indicator + exclude button ── */}

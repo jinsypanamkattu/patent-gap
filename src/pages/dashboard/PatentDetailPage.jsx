@@ -59,7 +59,7 @@ const getRiskTerm = (score) => {
   return 'low';
 };
 
-const calculateOverallRisk = (similarClaims = []) => {
+/*const calculateOverallRisk = (similarClaims = []) => {
   if (!similarClaims?.length) return 'low';
   const avg = similarClaims.reduce((sum, c) => sum + c.similarity_score, 0) / similarClaims.length;
   return getRiskTerm(avg);
@@ -69,6 +69,28 @@ const calculateOverlapScore = (similarClaims = []) => {
   if (!similarClaims?.length) return 0;
   const avg = similarClaims.reduce((sum, c) => sum + c.similarity_score, 0) / similarClaims.length;
   return Math.round(avg * 100 * 100) / 100;
+};*/
+// AFTER — mirrors InfringementModal exactly
+const calculateOverlapScore = (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  const scores = items
+    .map((item) =>
+      item?.calculated_similarity_score ?? item?.similarity_score ?? null
+    )
+    .filter((s) => s !== null && !isNaN(s));
+
+  if (scores.length === 0) return 0;
+
+  const average = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return Math.round(average * 100);
+};
+
+const calculateOverallRisk = (items = []) => {
+  const score = calculateOverlapScore(items) / 100;
+  if (score >= 0.9) return 'high';
+  if (score >= 0.7) return 'medium';
+  return 'low';
 };
 
 const getSourceName = (id = '') => {
@@ -86,50 +108,71 @@ const getSourceName = (id = '') => {
 // Patent format  → has entry_id, entry_title, entry_url
 // Product format → has product_id, product_name, product_url
 // ─────────────────────────────────────────────────────────────
+// AFTER — mirrors InfringementModal's normaliseInfringement exactly,
+// plus keeps the extra fields PatentDetailPage needs (badge, company, matchedClaims, _entryId)
 const normaliseMatch = (m) => {
+  if (!m) return null;
 
-  console.log('Normalising match:123', m);
-
-  const isProduct = Boolean(m.product_id);
-
-  if (isProduct) {
-    return {
-      type:          'product',
-      title:         m.product_name  || 'Untitled Product',
-      id:            m.product_id    || 'N/A',
-      url:           m.product_url   || null,
-      source:        m.source        || 'unknown',
-      score:         calculateOverlapScore(m.similar_claims),
-      badge:         calculateOverallRisk(m.similar_claims),
-      riskLevel:     calculateOverallRisk(m.similar_claims),
-      similarClaims: m.similar_claims || [],
-      claims:        m.claims        || m.similar_claims?.map(c => c.claim) || [],
-      company:       null,
-      matchedClaims: null,
-      _entryId:      m.product_id,
-    };
-  } else {
+  // ── Nested-case format: has case_id + infringements[] with calculated_similarity_score ──
+  if (m.case_id && Array.isArray(m.infringements)) {
     return {
       type:          'patent',
-      title:         m.entry_title   || m.title || 'Untitled',
-      id:            m.entry_id      || m.patent || m.case_id || 'N/A',
-      url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url     || m.url || null,
-      source:        m.source  || m.documents?.[0]?.source   || 'unknown',
+      title:         m.entry_title || m.title || `Case ${m.case_id}`,
+      id:            m.case_id,
+      url:           m.document_urls?.[0] || m.entry_url || null,
+      source:        m.source || 'unknown',
+      score:         calculateOverlapScore(m.infringements),
+      badge:         calculateOverallRisk(m.infringements),
+      riskLevel:     calculateOverallRisk(m.infringements),
+      similarClaims: m.infringements,
+      claims:        m.infringements.map(i => i.claim).filter(Boolean),
+      company:       null,
+      matchedClaims: m.infringements.map(i => i.claim).filter(Boolean),
+      sameAsPatent:  m.same_as_patent || false,
+      _isNestedCase: true,
+      _entryId:      m.case_id,
+    };
+  }
+
+  // ── Product format: has product_id ──
+  if (m.product_id) {
+    return {
+      type:          'product',
+      title:         m.product_name || 'Untitled Product',
+      id:            m.product_id   || 'N/A',
+      url:           m.product_url  || null,
+      source:        m.source       || 'unknown',
       score:         calculateOverlapScore(m.similar_claims),
       badge:         calculateOverallRisk(m.similar_claims),
       riskLevel:     calculateOverallRisk(m.similar_claims),
-      similarClaims: m.similar_claims || [],
-      //claims:        m.claims || m.similar_claims?.map(c => c.claim) || [],
-      claims: Array.isArray(m.claims) && m.claims.length > 0
-          ? m.claims
-          : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
-      company:       m.company       || null,
+      similarClaims: m.similar_claims  || [],
+      claims:        m.claims || m.similar_claims?.map(c => c.claim).filter(Boolean) || [],
+      company:       null,
       matchedClaims: m.similar_claims?.map(c => c.claim) || null,
-      _entryId:      m.entry_id      || m.patent || m.case_id,
+      _entryId:      m.product_id,
     };
   }
-};
 
+  // ── Standard patent format: has entry_id / entry_title ──
+  return {
+    type:          'patent',
+    title:         m.entry_title || m.title || 'Untitled',
+    id:            m.entry_id   || m.patent || m.case_id || 'N/A',
+    url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url || m.url || null,
+    source:        m.source || m.documents?.[0]?.source || 'unknown',
+    score:         calculateOverlapScore(m.similar_claims),
+    badge:         calculateOverallRisk(m.similar_claims),
+    riskLevel:     calculateOverallRisk(m.similar_claims),
+    similarClaims: m.similar_claims || [],
+    claims: Array.isArray(m.claims) && m.claims.length > 0
+        ? m.claims
+        : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
+    company:       m.company || null,
+    matchedClaims: m.similar_claims?.map(c => c.claim) || null,
+    sameAsPatent:  m.same_as_patent || false,
+    _entryId:      m.entry_id || m.patent || m.case_id,
+  };
+};
 // ─────────────────────────────────────────────────────────────
 // Derive a human-readable label for an in-progress analysis status
 // ─────────────────────────────────────────────────────────────
@@ -1741,6 +1784,25 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
           color: var(--accent);
         }
 
+      
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* ── ADD THESE THREE LINES ── */
+  .prog-fill.red   { background: var(--red,   #B22222); }
+  .prog-fill.amber { background: var(--amber, #b45309); }
+  .prog-fill.green { background: var(--accent,#2E7D32); }
+
+  /* ── Also fix pcard-badge for amber (medium risk) ── */
+  .pcard-badge.expired   { background: var(--red-soft);   color: var(--red);    }
+  .pcard-badge.abandoned { background: var(--amber-soft); color: var(--amber);  }
+  .pcard-badge.patented  { background: var(--acc-soft);   color: var(--accent); }
+
+  /* ── And pcard border colors ── */
+  .pcard.expired   { border-color: rgba(178,34,34,0.25);  }
+  .pcard.abandoned { border-color: rgba(180,83,9,0.25);   }
+  .pcard.patented  { border-color: rgba(46,125,50,0.25);  }
+
+
         /* ── Badges ── */
         .pd-badge {
           display: inline-flex; align-items: center; gap: 5px;
@@ -1749,7 +1811,7 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
         }
         .pd-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
         .pd-badge.patented  { background: rgba(46,125,50,0.10); color: #1b5e20; }
-        .pd-badge.abandoned { background: var(--acc-soft);  color: var(--accent); }
+        .pd-badge.abandoned { background: var(--amber-soft);  color: var(--amber); }
         .pd-badge.expired   { background: var(--red-soft);  color: var(--red); }
 
         /* ── Shared card body ── */

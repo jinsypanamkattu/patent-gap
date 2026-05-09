@@ -41,7 +41,7 @@ const formatDate = (dateString) => {
     year: 'numeric', month: 'long', day: 'numeric'
   });
 };
-
+/*
 const calculatePatentRisk = (infringements = []) => {
   if (!infringements.length) return 'low';
   const hasHigh = infringements.some(inf => {
@@ -71,7 +71,53 @@ const calculatePatentOverlapScore = (infringements = []) => {
   const scores = infringements.map(inf => calculateOverlapScore(inf.similar_claims || []));
   const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
   return Math.round(avg * 100) / 100;
+};*/
+
+// REPLACE these three functions in DashboardPage.jsx
+
+const getClaimScore = (item) =>
+  item?.calculated_similarity_score ?? item?.similarity_score ?? null;
+
+// Average score for one infringement's claims (0–100 integer)
+const calculateOverlapScore = (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return 0;
+  const scores = items
+    .map(getClaimScore)
+    .filter((s) => s !== null && !isNaN(s));
+  if (scores.length === 0) return 0;
+  return Math.round((scores.reduce((sum, s) => sum + s, 0) / scores.length) * 100);
 };
+
+// Average of per-infringement averages (your intended formula)
+const calculatePatentOverlapScore = (infringements = []) => {
+  if (!infringements.length) return 0;
+
+  const infringementAverages = infringements
+    .map((inf) => {
+      // Handles nested-case (inf.infringements[]) and standard (inf.similar_claims[])
+      const items = Array.isArray(inf.infringements)
+        ? inf.infringements
+        : (inf.similar_claims || []);
+      return calculateOverlapScore(items); // already 0–100
+    })
+    .filter((s) => s > 0); // skip infringements with no scoreable claims
+
+  if (infringementAverages.length === 0) return 0;
+
+  return Math.round(
+    infringementAverages.reduce((sum, s) => sum + s, 0) / infringementAverages.length
+  );
+};
+
+// Risk derived from the patent-level average of averages
+const calculatePatentRisk = (infringements = []) => {
+  const score = calculatePatentOverlapScore(infringements) / 100;
+  if (score >= 0.9) return 'high';
+  if (score >= 0.7) return 'medium';
+  return 'low';
+};
+
+
 
 const STAT_STATUS_MAP = {
   activeScans:      ['patented'],

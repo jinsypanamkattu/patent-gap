@@ -157,7 +157,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
     loadingStatus === 'fetching'     ? 'Fetching from USPTO…'   :
     loadingStatus === 'describing'   ? 'Generating description…' :
     loadingStatus === 'claims'       ? 'Isolating claims…'       :
-    loadingStatus === 'infringement' ? 'Finding infringements…'  :
+    //loadingStatus === 'infringement' ? 'Finding infringements…'  :
     'Processing…';
 
   return (

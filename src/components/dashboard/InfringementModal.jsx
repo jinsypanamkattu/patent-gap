@@ -181,7 +181,10 @@ const InfringementModal = ({
   const entryId    = normInfData?.id      || match.id    || 'N/A';
   const source     = normInfData?.source  || match.source || (isProduct ? 'Amazon' : 'Google Patents');
   const entryUrl   = normInfData?.url     || match.url   || null;
-  const caseLabel  = caseId ? (caseId.split('_')[1] || caseId) : (patentNumber || 'N/A');
+  //const caseLabel  = caseId ? (caseId.split('_')[1] || caseId) : (patentNumber || 'N/A');
+  const caseLabel = caseId
+  ? (String(caseId).split('_').pop() || caseId)
+  : (patentNumber || 'N/A');
 
   // ── Score, risk & badge — always derived from the calculated average ──
   // normInfData.score is the 0-100 average computed by calculateOverlapScore.

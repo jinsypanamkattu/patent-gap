@@ -193,6 +193,7 @@ export default function DashboardPage() {
 
   // Toggle stat card filter: clicking the active card resets to 'all'
   const handleStatCardClick = (cardKey) => {
+    console.log('Stat card clicked:', cardKey);
     const next = statusFilter === cardKey ? 'all' : cardKey;
     filterPatents({ status: next });
   };
@@ -225,7 +226,8 @@ export default function DashboardPage() {
     return {
       id: p._id,
       title: p.title || p.name || 'Untitled Project',
-      patentNumber: p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+      //patentNumber: p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+      patentNumber: p.patentId || (p._id ? String(p._id).split('_').pop() : 'N/A'),
       status: getStatusShorthand(p.status),
       updatedAt: formatTimeAgo(p.lastUpdated || p.updated_date || p.created_date),
       inventors: p.inventors,
@@ -244,7 +246,8 @@ export default function DashboardPage() {
   });
 
   console.log('📊 Raw patent fields:', patents.patents[0]);
-  console.log('📋 All statuses:', mappedPatents.map(p => ({ title: p.title, status: p.status })));
+  console.log('📋 All statuses:', mappedPatents.map(p => ({ title: p.title, status: p.status, id: p.patentNumber })));
+  
 
   const localHighRiskMatches = mappedPatents.filter(p => p.isHighRisk).length;
   const highRiskMatchesValue = patents.stats.highRiskMatches || localHighRiskMatches;

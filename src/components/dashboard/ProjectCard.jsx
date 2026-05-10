@@ -36,6 +36,7 @@ const ProjectCard = ({
   hasUpdates,
 }) => {
   const navigate = useNavigate();
+  
 
   const handleCardClick = () => {
     navigate('/patent-detail', {

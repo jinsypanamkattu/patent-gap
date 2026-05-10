@@ -24,6 +24,7 @@ export const usePatents = () => {
 
       const result = await patentApi.getMyCases(page);
       const cases = result?.items || [];
+      console.log(`Loaded patents (page ${page}):`, cases);
       const pagination = result?.pagination || {};
       if (append) {
         dispatch(appendPatents(cases));

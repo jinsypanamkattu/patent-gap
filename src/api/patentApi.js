@@ -63,6 +63,7 @@ export const patentApi = {
   getInfringementChart: async (caseId) => {
     try {
       const { data } = await axiosInstance.get(`/infringement-chart/${caseId}`);
+      console.log('📊 Infringement chart data received:', data);
       return data.infringement_chart || null;
     } catch (error) {
       apiError(error, 'Failed to fetch infringement chart');

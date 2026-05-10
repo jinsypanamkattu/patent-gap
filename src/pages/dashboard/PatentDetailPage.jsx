@@ -92,6 +92,50 @@ const calculateOverallRisk = (items = []) => {
   if (score >= 0.7) return 'medium';
   return 'low';
 };
+/*const calculateOverlapScore = (items = []) => {
+  console.log('Calculating overlap score for items:', items);
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  const hasCalculatedScore = items.some(
+    (item) => item?.calculated_similarity_score !== undefined && item?.calculated_similarity_score !== null
+  );
+  console.log('Has calculated_similarity_score?', hasCalculatedScore);
+
+  if (hasCalculatedScore) {
+    console.log('🔍 Calculating overlap score using calculated_similarity_score for items:', items);
+    // New format: use calculated_similarity_score
+    const scores = items
+      .map((item) => item?.calculated_similarity_score ?? item?.similarity_score ?? null)
+      .filter((s) => s !== null && !isNaN(s));
+    if (scores.length === 0) return 0;
+    const average = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    return Math.round(average * 100);
+  } else {
+    console.log('🔍 Calculating overlap score using similarity_score for items:', items);
+    // Old format: use similarity_score only
+    const avg = items.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / items.length;
+    return Math.round(avg * 100 * 100) / 100;
+  }
+};
+
+const calculateOverallRisk = (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return 'low';
+
+  const hasCalculatedScore = items.some(
+    (item) => item?.calculated_similarity_score !== undefined && item?.calculated_similarity_score !== null
+  );
+
+  if (hasCalculatedScore) {
+    const score = calculateOverlapScore(items) / 100;
+    if (score >= 0.9) return 'high';
+    if (score >= 0.7) return 'medium';
+    return 'low';
+  } else {
+    console.log('🔍 Calculating overall risk using similarity_score for items:', items);
+    const avg = items.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / items.length;
+    return getRiskTerm(avg);
+  }
+};*/
 
 const getSourceName = (id = '') => {
   if (id.includes('uspto'))     return 'US Patent Office';
@@ -115,6 +159,7 @@ const normaliseMatch = (m) => {
 
   // ── Nested-case format: has case_id + infringements[] with calculated_similarity_score ──
   if (m.case_id && Array.isArray(m.infringements)) {
+    console.log('entered 1');
     return {
       type:          'patent',
       title:         m.entry_title || m.title || `Case ${m.case_id}`,
@@ -136,6 +181,7 @@ const normaliseMatch = (m) => {
 
   // ── Product format: has product_id ──
   if (m.product_id) {
+    console.log('entered 2');
     return {
       type:          'product',
       title:         m.product_name || 'Untitled Product',
@@ -152,7 +198,7 @@ const normaliseMatch = (m) => {
       _entryId:      m.product_id,
     };
   }
-
+ console.log('entered 3');
   // ── Standard patent format: has entry_id / entry_title ──
   return {
     type:          'patent',
@@ -761,7 +807,8 @@ const PatentDetailPage = () => {
     return {
       id:             p._id,
       title:          p.title || p.name || 'Untitled Project',
-      patentNumber:   p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+      //patentNumber:   p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+      patentNumber: p.patentId || (p._id ? String(p._id).split('_').pop() : 'N/A'),
       status:         p.status,
       updatedAt:      p.lastUpdated || p.updated_date || p.created_date,
       inventors:      p.inventors,
@@ -776,7 +823,8 @@ const PatentDetailPage = () => {
   });
 
   const title          = caseData?.title    || projectData.title        || 'Untitled Case';
-  const patentNumber   = caseData?.patentId || projectData.patentNumber || caseData?._id?.split('_')[1] || 'N/A';
+  //const patentNumber   = caseData?.patentId || projectData.patentNumber || caseData?._id?.split('_')[1] || 'N/A';
+  const patentNumber = caseData?.patentId || (caseData?._id ? String(caseData._id).split('_').pop() : 'N/A');
   const status         = getStatusShorthand(caseData?.status || projectData.status || 'draft');
   const updatedAt      = caseData ? formatTimeAgo(caseData.updated_date || caseData.created_date) : (projectData.updatedAt || '—');
  // const inventors      = caseData?.inventors?.join(', ') || projectData.inventors || 'Not specified';
@@ -827,18 +875,21 @@ const PatentDetailPage = () => {
     const iaIsInFlight = !iaIsCompleted && !iaIsUnknown;
 
         const loadCase = useCallback(async () => {
-        const c = await patentApi.getCaseById(caseId);
-        console.log('📦 Loaded case data:', c);
-        
-        // Only fetch chart if infringements already exist
-        if (c?.infringements?.length > 0 && c?.claims?.length > 0) {
-          try {
-            const chart = await patentApi.getInfringementChart(caseId);
-            if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
-          } catch (e) { /* chart not ready yet */ }
-        }
-        return c;
-      }, [caseId]);
+          const c = await patentApi.getCaseById(caseId);
+          console.log('📦 Loaded case data:', c);
+
+          const hasInfringements = Array.isArray(c?.infringements) && c.infringements.length > 0;
+          const hasClaims = Array.isArray(c?.claims) && c.claims.length > 0;
+
+          if (hasInfringements && hasClaims) {
+            try {
+              const chart = await patentApi.getInfringementChart(caseId);
+              if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
+            } catch (e) { /* silent */ }
+          }
+
+          return c;
+        }, [caseId]);
 
   const fetchCaseDetails = useCallback(async () => {
     if (!caseId) { setPageLoading(false); return; }
@@ -1055,7 +1106,7 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
   const classifyDocUrl = (url = '') => {
   const firstHalf = url.split('.')[0]; // everything before the first dot
   if (firstHalf.includes('uspto'))      return 'uspto';
-  if (firstHalf.includes('documents/')) return 'local';
+  if (firstHalf.includes('document/')) return 'local';
   return 'external';
 };
 

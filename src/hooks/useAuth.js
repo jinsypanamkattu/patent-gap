@@ -36,9 +36,9 @@ export const useAuth = () => {
 
     console.log('🔍 Full login data:', JSON.stringify(data, null, 2));
     console.log('🔍 user_id:', data.user_id);
-    console.log('🔍 data.user:', data.user);
-    console.log('🔍 data.id:', data.id);
-    console.log('🔍 data._id:', data._id);
+    //console.log('🔍 data.user:', data.user);
+    //console.log('🔍 data.id:', data.id);
+    //console.log('🔍 data._id:', data._id);
 
 
     const user = {

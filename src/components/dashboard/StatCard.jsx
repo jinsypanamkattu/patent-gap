@@ -1,5 +1,6 @@
 const StatCard = ({ title, value, subtitle, icon, color = 'green', onClick, isActive = false }) => {
   const isAmber = color === 'yellow' || color === 'amber';
+  
 
   return (
     <div

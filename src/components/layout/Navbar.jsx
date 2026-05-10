@@ -15,11 +15,19 @@ export default function Navbar() {
   const { auth } = useStore()
   const { logout } = useAuth()
 
-  const doLogout = () => {
+  /*const doLogout = () => {
     logout()
     navigate('/login')
     setMenuOpen(false)
-  }
+  }*/
+
+    // ✅ Fixed
+const doLogout = async () => {
+  await logout()        // waits for: authApi.logout() + localStorage.removeItem + dispatch(logout())
+  navigate('/login')    // now runs after auth state is fully cleared
+  setMenuOpen(false)
+}
+  
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)

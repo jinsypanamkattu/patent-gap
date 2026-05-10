@@ -18,26 +18,41 @@ const apiError = (error, fallback) => {
 
 export const patentApi = {
 
-  getAllCases: async () => {
+  getAllCases: async (page = 1) => {
     try {
-      const { data } = await axiosInstance.get('/all-cases');
-      return data.cases || [];
+      const { data } = await axiosInstance.get('/all-cases', { params: { page } });
+      return {
+        items: data.items || [],
+        pagination: data.pagination || {},
+      };
     } catch (error) {
       apiError(error, 'Failed to fetch cases');
     }
   },
 
-  getMyCases: async () => {
+  getMyCases: async (page = 1) => {
     try {
-      const { data } = await axiosInstance.get('/my-cases');
-      return data.cases || [];
+
+      const { data } = await axiosInstance.get('/my-cases', { params: { page } });
+      return {
+        items: data.items || [],
+        pagination: data.pagination || {},
+      };
+
     } catch (error) {
+
+      console.error('❌ getMyCases error:', error);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error message:', error.message);
+      
       apiError(error, 'Failed to fetch cases');
     }
   },
 
   getCaseById: async (caseId) => {
     try {
+      console.log('📤 Fetching case with ID:', caseId);
       const { data } = await axiosInstance.get(`/cases/${caseId}`);
       return data.case;
     } catch (error) {
@@ -48,6 +63,7 @@ export const patentApi = {
   getInfringementChart: async (caseId) => {
     try {
       const { data } = await axiosInstance.get(`/infringement-chart/${caseId}`);
+      console.log('📊 Infringement chart data received:', data);
       return data.infringement_chart || null;
     } catch (error) {
       apiError(error, 'Failed to fetch infringement chart');
@@ -195,7 +211,9 @@ export const patentApi = {
   },
 
   updateCase: async (caseId, updateData) => {
+
     try {
+      console.log('📝 updateCase called with:', { caseId, updateData });
       const payload = { _id: caseId, ...updateData };
       console.log('📝 updateCase called:', { caseId, payload });
       const { data } = await axiosInstance.post(`/update-patent`, payload);
@@ -231,13 +249,19 @@ export const patentApi = {
 
   proxyDocument: async (documentUrl) => {
     try {
+      const { body } = { document_url: documentUrl }
+      const { responseParams } = { responseType: 'blob' }
+      console.log('Proxying document URL:', documentUrl);  
+      console.log('Proxying document Body:', body);
       const { data } = await axiosInstance.post(
         '/proxy-document',
-        { document_url: documentUrl },
-        { responseType: 'blob' }
+        body,
+        responseParams
       );
       return data;
     } catch (error) {
+       console.warn('Proxy document failed:', error.message);
+       console.warn('Complete Error Message:', error);
       apiError(error, 'Failed to open document');
     }
   },
@@ -255,6 +279,7 @@ export const patentApi = {
 
   getDocumentStream: async (url) => {
     try {
+      console.log('Streaming document from URL:', url);
       const { data } = await axiosInstance.get(url, { responseType: 'blob' });
       return data;
     } catch (error) {

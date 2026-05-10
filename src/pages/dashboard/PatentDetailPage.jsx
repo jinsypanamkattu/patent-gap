@@ -3,16 +3,21 @@
 // Fully responsive — mobile (320px+), tablet (768px+), desktop (1024px+)
 // ===========================
 
-import { Clock, ArrowLeft, FileText, Calendar, User, Tag, Download, Trash2, RefreshCw } from 'lucide-react';
+import { Clock, ArrowLeft, FileText, Calendar, User, Tag, Download, Trash2, RefreshCw, Search } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useStore } from '../../hooks/useStore';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
 import InfringementModal from '../../components/dashboard/InfringementModal';
 import DocumentModal from '../../components/dashboard/DocumentModal';    // ← NEW
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
+import MatchCard from '../../components/dashboard/MatchCard';
 import { patentApi } from '../../api/patentApi';
 import { deletePatent, updatePatent } from '../../store/slices/patentSlice';
+import SearchLimitationEditor from '../../components/dashboard/SearchLimitationEditor';
+import NotificationBell from '../../components/dashboard/NotificationBell';
+
 
 const getStatusShorthand = (status) => {
   status = String(status || '');
@@ -54,7 +59,7 @@ const getRiskTerm = (score) => {
   return 'low';
 };
 
-const calculateOverallRisk = (similarClaims = []) => {
+/*const calculateOverallRisk = (similarClaims = []) => {
   if (!similarClaims?.length) return 'low';
   const avg = similarClaims.reduce((sum, c) => sum + c.similarity_score, 0) / similarClaims.length;
   return getRiskTerm(avg);
@@ -64,12 +69,79 @@ const calculateOverlapScore = (similarClaims = []) => {
   if (!similarClaims?.length) return 0;
   const avg = similarClaims.reduce((sum, c) => sum + c.similarity_score, 0) / similarClaims.length;
   return Math.round(avg * 100 * 100) / 100;
+};*/
+// AFTER — mirrors InfringementModal exactly
+const calculateOverlapScore = (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  const scores = items
+    .map((item) =>
+      item?.calculated_similarity_score ?? item?.similarity_score ?? null
+    )
+    .filter((s) => s !== null && !isNaN(s));
+
+  if (scores.length === 0) return 0;
+
+  const average = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  return Math.round(average * 100);
 };
+
+const calculateOverallRisk = (items = []) => {
+  const score = calculateOverlapScore(items) / 100;
+  if (score >= 0.9) return 'high';
+  if (score >= 0.7) return 'medium';
+  return 'low';
+};
+/*const calculateOverlapScore = (items = []) => {
+  console.log('Calculating overlap score for items:', items);
+  if (!Array.isArray(items) || items.length === 0) return 0;
+
+  const hasCalculatedScore = items.some(
+    (item) => item?.calculated_similarity_score !== undefined && item?.calculated_similarity_score !== null
+  );
+  console.log('Has calculated_similarity_score?', hasCalculatedScore);
+
+  if (hasCalculatedScore) {
+    console.log('🔍 Calculating overlap score using calculated_similarity_score for items:', items);
+    // New format: use calculated_similarity_score
+    const scores = items
+      .map((item) => item?.calculated_similarity_score ?? item?.similarity_score ?? null)
+      .filter((s) => s !== null && !isNaN(s));
+    if (scores.length === 0) return 0;
+    const average = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    return Math.round(average * 100);
+  } else {
+    console.log('🔍 Calculating overlap score using similarity_score for items:', items);
+    // Old format: use similarity_score only
+    const avg = items.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / items.length;
+    return Math.round(avg * 100 * 100) / 100;
+  }
+};
+
+const calculateOverallRisk = (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return 'low';
+
+  const hasCalculatedScore = items.some(
+    (item) => item?.calculated_similarity_score !== undefined && item?.calculated_similarity_score !== null
+  );
+
+  if (hasCalculatedScore) {
+    const score = calculateOverlapScore(items) / 100;
+    if (score >= 0.9) return 'high';
+    if (score >= 0.7) return 'medium';
+    return 'low';
+  } else {
+    console.log('🔍 Calculating overall risk using similarity_score for items:', items);
+    const avg = items.reduce((sum, c) => sum + (c.similarity_score || 0), 0) / items.length;
+    return getRiskTerm(avg);
+  }
+};*/
 
 const getSourceName = (id = '') => {
   if (id.includes('uspto'))     return 'US Patent Office';
   if (id.includes('google'))    return 'Google';
   if (id.includes('espacenet')) return 'Espacenet';
+  if (id.includes('local')) return 'Manual Entry';
   return 'Patent Gap';
 };
 
@@ -80,44 +152,73 @@ const getSourceName = (id = '') => {
 // Patent format  → has entry_id, entry_title, entry_url
 // Product format → has product_id, product_name, product_url
 // ─────────────────────────────────────────────────────────────
+// AFTER — mirrors InfringementModal's normaliseInfringement exactly,
+// plus keeps the extra fields PatentDetailPage needs (badge, company, matchedClaims, _entryId)
 const normaliseMatch = (m) => {
-  const isProduct = Boolean(m.product_id);
+  if (!m) return null;
 
-  if (isProduct) {
-    return {
-      type:          'product',
-      title:         m.product_name  || 'Untitled Product',
-      id:            m.product_id    || 'N/A',
-      url:           m.product_url   || null,
-      source:        m.source        || 'unknown',
-      score:         calculateOverlapScore(m.similar_claims),
-      badge:         calculateOverallRisk(m.similar_claims),
-      riskLevel:     calculateOverallRisk(m.similar_claims),
-      similarClaims: m.similar_claims || [],
-      claims:        m.claims        || m.similar_claims?.map(c => c.claim) || [],
-      company:       null,
-      matchedClaims: null,
-      _entryId:      m.product_id,
-    };
-  } else {
+  // ── Nested-case format: has case_id + infringements[] with calculated_similarity_score ──
+  if (m.case_id && Array.isArray(m.infringements)) {
+    console.log('entered 1');
     return {
       type:          'patent',
-      title:         m.entry_title   || m.title || 'Untitled',
-      id:            m.entry_id      || m.patent || 'N/A',
-      url:           m.entry_url     || null,
-      source:        m.source        || 'unknown',
+      title:         m.entry_title || m.title || `Case ${m.case_id}`,
+      id:            m.case_id,
+      url:           m.document_urls?.[0] || m.entry_url || null,
+      source:        m.source || 'unknown',
+      score:         calculateOverlapScore(m.infringements),
+      badge:         calculateOverallRisk(m.infringements),
+      riskLevel:     calculateOverallRisk(m.infringements),
+      similarClaims: m.infringements,
+      claims:        m.infringements.map(i => i.claim).filter(Boolean),
+      company:       null,
+      matchedClaims: m.infringements.map(i => i.claim).filter(Boolean),
+      sameAsPatent:  m.same_as_patent || false,
+      _isNestedCase: true,
+      _entryId:      m.case_id,
+    };
+  }
+
+  // ── Product format: has product_id ──
+  if (m.product_id) {
+    console.log('entered 2');
+    return {
+      type:          'product',
+      title:         m.product_name || 'Untitled Product',
+      id:            m.product_id   || 'N/A',
+      url:           m.product_url  || null,
+      source:        m.source       || 'unknown',
       score:         calculateOverlapScore(m.similar_claims),
       badge:         calculateOverallRisk(m.similar_claims),
       riskLevel:     calculateOverallRisk(m.similar_claims),
-      similarClaims: m.similar_claims || [],
-      claims:        m.similar_claims?.map(c => c.claim) || [],
-      company:       m.company       || null,
+      similarClaims: m.similar_claims  || [],
+      claims:        m.claims || m.similar_claims?.map(c => c.claim).filter(Boolean) || [],
+      company:       null,
       matchedClaims: m.similar_claims?.map(c => c.claim) || null,
-      _entryId:      m.entry_id      || m.patent,
+      _entryId:      m.product_id,
     };
   }
+ console.log('entered 3');
+  // ── Standard patent format: has entry_id / entry_title ──
+  return {
+    type:          'patent',
+    title:         m.entry_title || m.title || 'Untitled',
+    id:            m.entry_id   || m.patent || m.case_id || 'N/A',
+    url:           m.document_urls?.[0] || m.documents?.[0]?.url || m.entry_url || m.url || null,
+    source:        m.source || m.documents?.[0]?.source || 'unknown',
+    score:         calculateOverlapScore(m.similar_claims),
+    badge:         calculateOverallRisk(m.similar_claims),
+    riskLevel:     calculateOverallRisk(m.similar_claims),
+    similarClaims: m.similar_claims || [],
+    claims: Array.isArray(m.claims) && m.claims.length > 0
+        ? m.claims
+        : m.similar_claims?.map(c => c.claim).filter(Boolean) ?? [],
+    company:       m.company || null,
+    matchedClaims: m.similar_claims?.map(c => c.claim) || null,
+    sameAsPatent:  m.same_as_patent || false,
+    _entryId:      m.entry_id || m.patent || m.case_id,
+  };
 };
-
 // ─────────────────────────────────────────────────────────────
 // Derive a human-readable label for an in-progress analysis status
 // ─────────────────────────────────────────────────────────────
@@ -627,99 +728,6 @@ const SectionCard = ({ title, eyebrow, icon: Icon, children, actions }) => (
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────
-// MatchCard — reused in both the "previous results" strip and
-// the normal completed-results grid.
-// ─────────────────────────────────────────────────────────────
-const MatchCard = ({ match, updatedAt, onSelect }) => {
-  
-  const isHigh         = match.riskLevel === 'high';
-  const isMedium       = match.riskLevel === 'medium';
-  const matchCardClass = isHigh ? 'expired' : isMedium ? 'abandoned' : 'patented';
-  const isProduct      = match.type === 'product';
-
-  return (
-    <div
-      className={`pcard ${matchCardClass}`}
-      onClick={() => {
-        console.log(`🔍 Selected match [${match.type}]:`, match);
-        onSelect(match);
-      }}
-    >
-      <div className="pcard-top">
-        <span className={`pcard-badge ${matchCardClass}`}>
-          <span className="pcard-dot" />
-          {typeof match.badge === 'string' ? match.badge.charAt(0).toUpperCase() + match.badge.slice(1) : match.badge} Risk
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className="pd-type-pill" data-type={isProduct ? 'product' : 'patent'}>
-            {isProduct ? '🛒 Product' : '📄 Patent'}
-          </span>
-          <button
-            className="card-ext"
-            aria-label="Open"
-            onClick={e => {
-              e.stopPropagation();
-              console.log(`🔍 Selected match [${match.type}]:`, match);
-              onSelect(match);
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-              <polyline points="15 3 21 3 21 9"/>
-              <line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div className="pcard-title">{match.title}</div>
-
-      <div className="pcard-num">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/></svg>
-        {isProduct ? `Product: ${match.id}` : `Patent: ${match.id}`}
-      </div>
-
-      {match.company && (
-        <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>
-          Company: {match.company}
-        </div>
-      )}
-
-      {isProduct && match.claims?.length > 0 && (
-        <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8, fontStyle: 'italic' }}>
-          "{match.claims[0].slice(0, 80)}…"
-        </div>
-      )}
-
-      <div className="pcard-progress">
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontFamily: "'Inconsolata', monospace", fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.10em', color: 'var(--ink3)' }}>Overlap Score</span>
-          <span style={{ fontFamily: "'Libre Baskerville', serif", fontSize: 14, fontWeight: 700, color: isHigh ? 'var(--red)' : isMedium ? 'var(--amber)' : 'var(--accent)' }}>{match.score}%</span>
-        </div>
-        <div className="prog-track">
-          <div className={`prog-fill ${isHigh ? 'red' : isMedium ? 'grey' : 'green'}`} style={{ width: `${match.score}%` }} />
-        </div>
-        {match.matchedClaims && (
-          <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 5, fontFamily: "'Inconsolata', monospace" }}>
-            Claims: {match.matchedClaims.join(', ')}
-          </div>
-        )}
-      </div>
-
-      <div className="pcard-foot">
-        <div className="pcard-time">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          {updatedAt}
-        </div>
-        <div className="pcard-live">
-          <div className="live-bars"><span /><span /><span /><span /></div>
-          Live
-        </div>
-      </div>
-    </div>
-  );
-};
 
 
 
@@ -737,6 +745,7 @@ const PatentDetailPage = () => {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const fileInputRef   = useRef();
   
+  const { patents } = useStore();
 
   const handleAddDocument = async (e) => {
   const file = e.target.files?.[0];
@@ -774,15 +783,55 @@ const PatentDetailPage = () => {
   // ── Ref for the background polling interval ──
   const pollIntervalRef = useRef(null);
 
+  const mappedPatentsForBell = patents.patents.map(p => {
+    /*const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+    const lastUpdated = p.last_updated || p.updated_date || p.lastUpdated;
+    const hasUpdates = lastUpdated && lastViewed
+      ? new Date(lastUpdated) > lastViewed
+      : false;  // ← if either is missing, no badge*/
+      const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+
+      const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
+
+      // Normalize RFC 2822 → safe ISO string before parsing
+      const lastUpdated = rawUpdated
+        ? new Date(rawUpdated.replace(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/, '$4-$3-$2T$5Z'))
+        : null;
+
+      // Guard against NaN from bad date strings
+      const isValid = (d) => d instanceof Date && !isNaN(d);
+
+      const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+        ? lastUpdated > lastViewed
+        : false;
+    return {
+      id:             p._id,
+      title:          p.title || p.name || 'Untitled Project',
+      //patentNumber:   p.patentId || String(p._id || '').split('_')[1] || 'N/A',
+      patentNumber: p.patentId || (p._id ? String(p._id).split('_').pop() : 'N/A'),
+      status:         p.status,
+      updatedAt:      p.lastUpdated || p.updated_date || p.created_date,
+      inventors:      p.inventors,
+      filedDate:      p.filedDate || p.filed_date,
+      keywords:       p.keywords,
+      description:    p.description,
+      matchesCount:   p.matchCount || p.match_count || 0,
+      documentsCount: p.documentsCount,
+      progress:       0,
+      hasUpdates,     // ← replaces Boolean(p.last_updated || p.updated_date)
+    };
+  });
+
   const title          = caseData?.title    || projectData.title        || 'Untitled Case';
-  const patentNumber   = caseData?.patentId || projectData.patentNumber || caseData?._id?.split('_')[1] || 'N/A';
+  //const patentNumber   = caseData?.patentId || projectData.patentNumber || caseData?._id?.split('_')[1] || 'N/A';
+  const patentNumber = caseData?.patentId || (caseData?._id ? String(caseData._id).split('_').pop() : 'N/A');
   const status         = getStatusShorthand(caseData?.status || projectData.status || 'draft');
   const updatedAt      = caseData ? formatTimeAgo(caseData.updated_date || caseData.created_date) : (projectData.updatedAt || '—');
  // const inventors      = caseData?.inventors?.join(', ') || projectData.inventors || 'Not specified';
  const inventors = Array.isArray(caseData?.inventors)
   ? caseData.inventors.join(', ')
   : caseData?.inventors || projectData.inventors || 'Not specified';
-  const filedDate      = formatDate(caseData?.filing_date || caseData?.filedAt) || projectData.filedDate || '—';
+  const filedDate      = formatDate(caseData?.filingDate || caseData?.filedAt) || projectData.filedDate || '—';
   //const keywords       = caseData?.keywords?.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || projectData.keywords || 'No keywords available';
   const keywords = Array.isArray(caseData?.keywords)
   ? caseData.keywords.map(k => k.charAt(0).toUpperCase() + k.slice(1)).join(', ')
@@ -797,13 +846,18 @@ const PatentDetailPage = () => {
 
   const displayClaims = caseData?.claims || [];
 
+
+
   const realMatches = caseData?.infringements || [];
+  /*const realMatches = (caseData?.infringements || []).filter(
+      infringement => !new Set(caseData?.excluded_case_ids ?? []).has(infringement.case_id)
+    );*/
   console.log('📋 Raw infringements from API:', realMatches);
 
   const potentialMatches = realMatches.length > 0
     ? realMatches.map(m => {
         const normalised = normaliseMatch(m);
-        console.log(`🔍 [${normalised.type.toUpperCase()}] Normalised match:`, normalised);
+        console.log(`🔍 [${normalised.type.toUpperCase()}] Normalised match789:`, normalised);
         return normalised;
       })
     : [];
@@ -811,20 +865,6 @@ const PatentDetailPage = () => {
     console.log('🃏 All potential matches:', JSON.stringify(potentialMatches, null, 2));
 
 
-    
-
-  /*const iaStatus      = String(infringementAnalysisStatus || '').toLowerCase();
-  const iaIsCompleted = iaStatus === 'completed';
-  const iaIsUnknown   = iaStatus === 'unknown' || iaStatus === 'none' || iaStatus === '';
-  const iaIsInFlight  = !iaIsCompleted && !iaIsUnknown;
-
-  const shouldShowMatches =
-    (iaIsCompleted && realMatches.length > 0) ||
-    (iaIsUnknown   && realMatches.length > 0);
-
-  const shouldShowEmpty =
-    (iaIsCompleted && realMatches.length === 0) ||
-    (iaIsUnknown   && realMatches.length === 0);*/
     // ✅ REPLACE with this — simple, always shows matches if they exist
     const shouldShowMatches = realMatches.length > 0;
     const shouldShowEmpty   = !analysisLoading && realMatches.length === 0;
@@ -834,32 +874,34 @@ const PatentDetailPage = () => {
     const iaIsUnknown  = iaStatus === 'unknown' || iaStatus === 'none' || iaStatus === '';
     const iaIsInFlight = !iaIsCompleted && !iaIsUnknown;
 
-  /*const loadCase = useCallback(async () => {
-    const c = await patentApi.getCaseById(caseId);
-    try {
-      const chart = await patentApi.getInfringementChart(caseId);
-      if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
-    } catch (e) { console.warn('Claims chart unavailable', e); }
-    return c;
-  }, [caseId]);*/
         const loadCase = useCallback(async () => {
-        const c = await patentApi.getCaseById(caseId);
-        // Only fetch chart if infringements already exist
-        if (c?.infringements?.length > 0 && c?.claims?.length > 0) {
-          try {
-            const chart = await patentApi.getInfringementChart(caseId);
-            if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
-          } catch (e) { /* chart not ready yet */ }
-        }
-        return c;
-      }, [caseId]);
+          const c = await patentApi.getCaseById(caseId);
+          console.log('📦 Loaded case data:', c);
+
+          const hasInfringements = Array.isArray(c?.infringements) && c.infringements.length > 0;
+          const hasClaims = Array.isArray(c?.claims) && c.claims.length > 0;
+
+          if (hasInfringements && hasClaims) {
+            try {
+              const chart = await patentApi.getInfringementChart(caseId);
+              if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
+            } catch (e) { /* silent */ }
+          }
+
+          return c;
+        }, [caseId]);
 
   const fetchCaseDetails = useCallback(async () => {
     if (!caseId) { setPageLoading(false); return; }
     try {
       setPageLoading(true);
       const c = await loadCase();
+
+    
+
       setCaseData(c);
+      console.log('🆔 caseData._id:', c?._id);           
+      console.log('🏷️ getSourceName result:', getSourceName(c?._id || ''));     
 
         console.log('🗂️ FULL caseData:', JSON.stringify(c, null, 2));
 
@@ -929,6 +971,45 @@ useEffect(() => {
 }, [analysisLoading, pollCaseDetails]);  // ← removed iaIsInFlight
 
   useEffect(() => { fetchCaseDetails(); }, [fetchCaseDetails]);
+
+
+  // ── Last Viewed tracking ─────────────────────────────────────
+useEffect(() => {
+  if (!caseId) return;
+
+console.log('📅 Tracking last_viewed for caseId:', caseId);
+  const updateLastViewed = () => {
+    patentApi.updateCase(caseId, {
+      last_viewed: new Date().toISOString(),
+    }).catch(err => {
+      console.warn('Failed to update last_viewed:', err.message);
+    });
+  };
+
+  // ── 1. On page open ──────────────────────────────────────────
+  updateLastViewed();
+
+  // ── 2. Browser close / tab close / refresh ───────────────────
+  const handleBeforeUnload = () => {
+    const blob = new Blob(
+      [JSON.stringify({ _id: caseId, last_viewed: new Date().toISOString() })],
+      { type: 'application/json' }
+    );
+    navigator.sendBeacon('/api/update-patent', blob);
+  };
+  window.addEventListener('beforeunload', handleBeforeUnload);
+
+  // ── 3. Browser back button ───────────────────────────────────
+  const handlePopState = () => updateLastViewed();
+  window.addEventListener('popstate', handlePopState);
+
+  return () => {
+    // ── 4. React Router navigation (your Back button, Link, navigate) ──
+    updateLastViewed();
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.removeEventListener('popstate', handlePopState);
+  };
+}, [caseId]); // ← only re-runs if caseId changes
 
   const beginSimilarityAnalysis = async () => {
     const keywords = caseData?.keywords       || [];
@@ -1022,6 +1103,12 @@ useEffect(() => {
       navigate('/dashboard');
     } catch (err) { alert(`Error: ${err?.message}`); }
   };
+  const classifyDocUrl = (url = '') => {
+  const firstHalf = url.split('.')[0]; // everything before the first dot
+  if (firstHalf.includes('uspto'))      return 'uspto';
+  if (firstHalf.includes('document/')) return 'local';
+  return 'external';
+};
 
   // ── CHANGED: just sets the modal index — no blob fetch ────────────────── //
   const openDocument = (index) => {
@@ -1032,14 +1119,29 @@ useEffect(() => {
     console.log('📄 Opening doc [' + index + ']:', doc);
     console.log('📌 source:', source, '| url:', url);
 
-    if (!source.includes('local') && !source.includes('uspto')) {
-      // external — open in new tab
-      window.open(url, '_blank', 'noopener,noreferrer');
-      return;
-    }
+    
 
-    // local or USPTO — open modal
-    setDocModalIndex(index);
+     // const firstHalf = url.split('.')[0];
+     const kind = classifyDocUrl(url);
+
+
+      // USPTO domain — check if it's a direct file or a search/app page
+      if (kind === 'uspto') {
+        
+        // Direct USPTO file (pdfpiw, etc.) → modal
+        setDocModalIndex(index);
+        return;
+      }
+
+      // Local document stored on your server → modal
+      if (kind === 'local') {
+        setDocModalIndex(index);
+        return;
+      }
+
+      // Everything else → new tab
+      window.open(url, '_blank', 'noopener,noreferrer');
+   
   };
   if (pageLoading) {
     return (
@@ -1106,12 +1208,12 @@ useEffect(() => {
           </div>
 
           <div className="tn-right">
-            <button className="tn-icon" aria-label="Notifications">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-            </button>
+            <NotificationBell
+              patents={mappedPatentsForBell}
+              onPatentClick={(patent) =>
+                navigate(`/patent-detail?id=${patent.id}`)
+              }
+            />
             <div className="tn-vsep" />
             <Link to="/dashboard" className="tn-btn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1256,6 +1358,7 @@ useEffect(() => {
               <InfoRow icon={Clock}    label="Last Updated" value={updatedAt} />
               <InfoRow icon={User}     label="Inventors"    value={inventors} />
               <InfoRow icon={Tag}      label="Keywords"     value={keywords} />
+              <InfoRow icon={Tag}      label="Source"       value={getSourceName(caseData?._id || '')} />
             </SectionCard>
 
             {/* Context & Description — editable */}
@@ -1288,6 +1391,94 @@ useEffect(() => {
                 </div>
               )}
             </SectionCard>
+          </div>
+
+          {/* ── Search Limitations + Related IDs — side by side ── */}
+          <div className="pd-sl-ri-row">
+
+            {/* ── Search Limitations ── */}
+            <SectionCard title="Search Limitations" eyebrow="User Defined" icon={Search}>
+              <SearchLimitationEditor
+                caseId={caseId}
+                initialData={caseData?.searchLimitations}
+                onSave={(data) =>
+                  setCaseData(prev => ({ ...prev, searchLimitations: data }))
+                }
+              />
+            </SectionCard>
+
+            {/* ── Related IDs ── */}
+            <SectionCard title="Related IDs" eyebrow="Patent Family" icon={FileText}>
+                {caseData?.other_ids?.filter(item =>
+                  Array.isArray(item.value) ? item.value.length > 0 : Boolean(item.value)
+                ).length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {caseData.other_ids
+                      .filter(item =>
+                        Array.isArray(item.value) ? item.value.length > 0 : Boolean(item.value)
+                      )
+                      .map((item, i, arr) => {
+                        const values = Array.isArray(item.value)
+                          ? item.value
+                          : item.value
+                          ? [item.value]
+                          : [];
+
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 12,
+                              padding: '9px 0',
+                              borderBottom: i < arr.length - 1 ? '1px solid var(--rule2)' : 'none',
+                            }}
+                          >
+                            {/* Label */}
+                            <span style={{
+                              fontFamily: "'Inconsolata', monospace",
+                              fontSize: 10,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.10em',
+                              color: 'var(--ink3)',
+                              flexShrink: 0,
+                              width: 160,
+                              paddingTop: 4,
+                            }}>
+                              {item.title || '—'}
+                            </span>
+
+                            {/* Values — pill per entry */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                              {values.map((v, vi) => (
+                                <span key={vi} style={{
+                                  fontFamily: "'Inconsolata', monospace",
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: 'var(--accent)',
+                                  background: 'var(--acc-soft)',
+                                  border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+                                  borderRadius: 5,
+                                  padding: '2px 9px',
+                                  letterSpacing: '0.04em',
+                                  wordBreak: 'break-all',
+                                }}>
+                                  {v}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 13.5, color: 'var(--ink3)', margin: 0, fontStyle: 'italic' }}>
+                    No related IDs available.
+                  </p>
+                )}
+              </SectionCard>
+
           </div>
 
           {/* ── Documents ── */}
@@ -1332,10 +1523,29 @@ useEffect(() => {
                 ? caseData.documents.map((doc, i) => {
                     // ── Thumbnail visuals are 100% unchanged ──────────────── //
                     const url            = doc.url || '';
+                    console.log('📄 Processing doc url:', url);
                     //const ext            = url.split('.').pop();
-                    const ext   = url.split('/').pop().split('.').pop(); // ← use split('/').pop() not split('.')
+                    //const ext   = url.split('/').pop().split('.').pop(); // ← use split('/').pop() not split('.')
                     const src            = doc.source || '';
-                    const bgImg          = src === 'uspto' ? 'uspto.jpg' : 'local.png';
+                    console.log('📄 doc.source raw value:', JSON.stringify(doc.source));
+                    console.log('📄 full doc object:', doc);
+                    //const bgImg          = src === 'uspto' ? 'uspto.jpg' : 'uspto.jpg';
+                    // ── Safe ext extraction ──────────────────────────────
+                    const rawExt = url.split('/').pop().split('.').pop();
+                    // Only use it if it looks like a real extension (≤5 chars, no spaces/?)
+                    const ext = rawExt && rawExt.length <= 5 && !/[?&\s]/.test(rawExt)
+                      ? rawExt
+                      : 'pdf'; // ← fallback
+
+                    const srcLower = src.toLowerCase();
+                    const bgImg = 
+                      srcLower.includes('uspto')          ? 'uspto.jpg'        :
+                      srcLower.includes('espacenet')      ? 'espacenet.png'    :
+                      srcLower.includes('google patents')  ? 'googlepatents.png'       :
+                      srcLower.includes('global dossier') ? 'espacenet.png':
+                      srcLower.includes('local')        ? 'local.png'      :
+                      srcLower.includes('freepatents')        ? 'freepatentsonline.png'      :
+                      'default.png';
                     return (
                       <div key={i} onClick={() => openDocument(i)} className="pd-doc-thumb">
                         <div
@@ -1345,9 +1555,52 @@ useEffect(() => {
                           style={{ cursor: 'pointer' }}
                         >
                           {/* original image — untouched */}
-                          <img src={`/images/${bgImg}`} alt={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={`/images/${bgImg}`} alt={src} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.45, }} />
                           <div className="pd-doc-blur" />
-                          <div className="pd-doc-label">{i + 1}.{ext}</div>
+                          <div className="pd-doc-label" style={{
+                              flexDirection: 'column',
+                              gap: 6,
+                              padding: '0 6px',
+                              textAlign: 'center',
+                            }}>
+                              {/* big index number */}
+                              <span style={{
+                                fontSize: '2rem',
+                                fontWeight: 900,
+                                color: 'var(--ink)',
+                                lineHeight: 1,
+                                letterSpacing: '-0.02em',
+                              }}>
+                                {i + 1}
+                              </span>
+
+                              {/* source name */}
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 900,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.10em',
+                                color: 'var(--ink)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '92%',
+                                lineHeight: 1.2,
+                              }}>
+                                {src || `doc ${i + 1}`}
+                              </span>
+
+                              {/* extension */}
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 900,
+                                color: 'var(--ink2)',
+                                letterSpacing: '0.06em',
+                                textTransform: 'uppercase',
+                              }}>
+                                .{ext}
+                              </span>
+                            </div>
                         </div>
                       </div>
                     );
@@ -1453,7 +1706,9 @@ useEffect(() => {
             fontSize: 11, color: 'var(--ink3)', margin: 0,
             textTransform: 'uppercase', letterSpacing: '0.08em',
           }}>
-            Status: {infringementAnalysisStatus}
+            Status: {infringementAnalysisStatus}<br />
+            We are currently working hard to find the information and insights needed to protect your inventions. <br />
+            This analysis can take a while. We will notify you immediately once the results are ready.
           </p>
         </div>
         <span style={{
@@ -1498,8 +1753,41 @@ useEffect(() => {
               key={index}
               match={match}
               updatedAt={updatedAt}
+              caseId={caseId}
               onSelect={setSelectedMatch}
+              onExclude={(excludedId) => {
+                const updatedInfringements = (caseData?.infringements || []).filter(
+                  inf => (inf.product_id || inf.entry_id || inf.patent || inf.case_id) !== excludedId
+                );
+                const updatedExcludedIds = [...(caseData?.excluded_case_ids || []), excludedId];
+                const updatedExcludedTitles = [
+                  ...(caseData?.excluded_titles || []),
+                  caseData?.infringements?.find(
+                    inf => (inf.product_id || inf.entry_id || inf.patent || inf.case_id) === excludedId
+                  )?.entry_title || ''
+                ];
+
+                // Update backend with full arrays
+                patentApi.updateCase(caseId, {
+                  infringements: updatedInfringements,
+                  excluded_case_ids: [excludedId],
+                  excluded_titles: [
+                    caseData?.infringements?.find(
+                      inf => (inf.product_id || inf.entry_id || inf.patent || inf.case_id) === excludedId
+                    )?.entry_title || ''
+                  ],
+                });
+
+                // Update local state
+                setCaseData(prev => ({
+                  ...prev,
+                  infringements: updatedInfringements,
+                  excluded_case_ids: updatedExcludedIds,
+                  excluded_titles: updatedExcludedTitles,
+                }));
+              }}
             />
+            
           ))}
         </div>
       )}
@@ -1547,6 +1835,25 @@ useEffect(() => {
           color: var(--accent);
         }
 
+      
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* ── ADD THESE THREE LINES ── */
+  .prog-fill.red   { background: var(--red,   #B22222); }
+  .prog-fill.amber { background: var(--amber, #b45309); }
+  .prog-fill.green { background: var(--accent,#2E7D32); }
+
+  /* ── Also fix pcard-badge for amber (medium risk) ── */
+  .pcard-badge.expired   { background: var(--red-soft);   color: var(--red);    }
+  .pcard-badge.abandoned { background: var(--amber-soft); color: var(--amber);  }
+  .pcard-badge.patented  { background: var(--acc-soft);   color: var(--accent); }
+
+  /* ── And pcard border colors ── */
+  .pcard.expired   { border-color: rgba(178,34,34,0.25);  }
+  .pcard.abandoned { border-color: rgba(180,83,9,0.25);   }
+  .pcard.patented  { border-color: rgba(46,125,50,0.25);  }
+
+
         /* ── Badges ── */
         .pd-badge {
           display: inline-flex; align-items: center; gap: 5px;
@@ -1555,7 +1862,7 @@ useEffect(() => {
         }
         .pd-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
         .pd-badge.patented  { background: rgba(46,125,50,0.10); color: #1b5e20; }
-        .pd-badge.abandoned { background: var(--acc-soft);  color: var(--accent); }
+        .pd-badge.abandoned { background: var(--amber-soft);  color: var(--amber); }
         .pd-badge.expired   { background: var(--red-soft);  color: var(--red); }
 
         /* ── Shared card body ── */
@@ -1731,6 +2038,17 @@ useEffect(() => {
           .pd-doc-inner { width: 5.5rem; height: 7rem; }
           .page-title { font-size: clamp(15px, 5vw, 24px) !important; }
         }
+          /* ── Search Limitations + Related IDs row ── */
+        .pd-sl-ri-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 0;  /* SectionCard already adds margin-bottom: 20px */
+        }
+
+        @media (max-width: 900px) {
+          .pd-sl-ri-row { grid-template-columns: 1fr; }
+        }
       `}</style>
 
       {/* ── Infringement match modal (unchanged) ── */}
@@ -1757,18 +2075,27 @@ useEffect(() => {
           onNext={() => setDocModalIndex(i => Math.min(i + 1, caseData.documents.length - 1))}
           onPrev={() => setDocModalIndex(i => Math.max(i - 1, 0))}
           fetchBlob={async (doc) => {
-            const source = (doc?.source || '').toLowerCase();
-            const url    = doc?.url || '';
+              const url  = doc?.url || '';
+              const kind = classifyDocUrl(url);
 
-            if (source.includes('local')) {
-              //const baseURL    = axiosInstance.defaults.baseURL || '';
-              return await patentApi.getDocumentStream(`/${url}`);
-            }
+              if (kind === 'uspto') {
+                try {
+                  return await patentApi.proxyDocument(url);
+                } catch (err) {
+                  throw new Error(
+                    err?.message?.includes('HTML page')
+                      ? 'This document link points to a USPTO search page, not a direct file. Open it in a new tab instead.'
+                      : `Could not load USPTO document: ${err?.message || 'Unknown error'}`
+                  );
+                }
+              }
 
-            if (source.includes('uspto')) {
-              return await patentApi.proxyDocument(url);
-            }
-          }}
+              if (kind === 'local') {
+                return await patentApi.getDocumentStream(`/${url}`);
+              }
+
+              throw new Error(`Unsupported document source for URL: ${url}`);
+            }}
         />
       )}
 

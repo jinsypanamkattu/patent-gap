@@ -21,6 +21,7 @@ function formatLocalDateInputValue(date) {
 // ─── Step 1: Upload Patent ────────────────────────────────────────────────────
 
 const UploadPatentStep = ({ onClose, onContinue }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab]             = useState('upload');
   const [projectName, setProjectName]         = useState('');
   const [localPatentId, setLocalPatentId]     = useState('');
@@ -31,16 +32,15 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
   const [patentNumber, setPatentNumber]       = useState('');
   const [selectedFile, setSelectedFile]       = useState(null);
   const [loading, setLoading]                 = useState(false);
-  const [loadingStatus, setLoadingStatus]     = useState(''); // ← track sub-step
   const [error, setError]                     = useState('');
 
   const filingDateMax = formatLocalDateInputValue(new Date());
 
-  
   const isValid =
-        activeTab === 'upload'
-          ? !!(projectName.trim() && selectedFile && localPatentId.trim())
-          : !!patentNumber.trim();
+    projectName.trim() &&
+    (activeTab === 'upload'
+      ? !!selectedFile && localPatentId.trim()
+      : patentNumber.trim());
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -61,24 +61,21 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
   const handleContinue = async () => {
     setError('');
     setLoading(true);
-
     try {
-      // ── PATENT ID TAB: run everything here, skip Step 2 entirely ──────────
       if (activeTab === 'patentId') {
-
-        // 1. Fetch from USPTO
-        setLoadingStatus('fetching');
+        // ── BUG 1 & 2 FIX ────────────────────────────────────────────────────
+        // Previously: fetched patent → onClose() → navigate() immediately,
+        // skipping Step 2 entirely and never calling triggerSimilarityAnalysis.
+        // Fix: pass USPTO data to onContinue() so Step 2 renders, where
+        // triggerSimilarityAnalysis is called after createPatent (same as upload flow).
         const data = await patentApi.fetchFromUspto(patentNumber.trim());
         if (!data.success) throw new Error(data.message || 'USPTO fetch failed');
 
         let caseDetails = data.case_data;
-        const desc   = caseDetails.description || '';
+        const desc = caseDetails.description || '';
         const status = caseDetails.status || '';
-
-        // 2. Generate description if too short
         if (desc === status || desc.split(' ').length < 10) {
           try {
-            setLoadingStatus('describing');
             const summaryData = await patentApi.generateDescription(data.case_id);
             if (summaryData.summary) caseDetails.description = summaryData.summary;
           } catch (e) {
@@ -86,45 +83,20 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
           }
         }
 
-        const caseId   = data.case_id;
-        const keywords = caseDetails.keywords || [];
-
-        // 3. Trigger similarity analysis (non-blocking fire-and-forget)
-       /* patentApi.triggerSimilarityAnalysis(caseId, keywords).catch(err => {
-          console.warn('Similarity analysis trigger failed (non-blocking):', err.message);
-        });*/
-        console.log("checking caseId, keywords:", caseId, keywords);
-        // 4. Get claims
-        setLoadingStatus('claims');
-        let claims = [];
-        try {
-          claims = await patentApi.getClaims(caseId);
-        } catch (e) {
-          console.warn('getClaims failed (non-blocking):', e.message);
-        }
-
-        // 5. Get infringement analysis
-       /* setLoadingStatus('infringement');
-        let infringements = [];
-        try {
-          const analysisData = await patentApi.getInfringementAnalysis(caseId);
-          infringements = analysisData?.similar_infringements || [];
-        } catch (e) {
-          console.warn('getInfringementAnalysis failed (non-blocking):', e.message);
-        }*/
-
-        // 6. Persist results
-       /* if (infringements.length > 0 || claims.length > 0) {
-          await patentApi.updateCase(caseId, { infringements, claims }).catch(() => {});
-        }*/
-       if (claims.length > 0) {
-          await patentApi.updateCase(caseId, { claims }).catch(() => {});
-        }
-
-        // 7. Signal parent to close + navigate — skip Step 2
-        onContinue({ skipStep2: true, caseId });
-
-      // ── UPLOAD TAB: pass to Step 2 as normal ─────────────────────────────
+        // Hand off to Step 2 with the pre-fetched USPTO data so the user can
+        // add context AND so triggerSimilarityAnalysis fires consistently.
+        onContinue({
+          projectName,
+          activeTab,
+          file: null,
+          caseDetails,
+          caseId: data.case_id,
+          patentId: patentNumber.trim(),
+          inventors: '',
+          keywords: (caseDetails.keywords || []).join(', '),
+          filingDate: caseDetails.filing_date || '',
+          currentStatus: caseDetails.status || 'Processing',
+        });
       } else {
         onContinue({
           projectName,
@@ -139,26 +111,16 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
           currentStatus,
         });
       }
-
     } catch (err) {
       setError(err?.message || 'Failed to fetch patent. Please try again.');
     } finally {
       setLoading(false);
-      setLoadingStatus('');
     }
   };
 
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel? Your progress will be lost.')) onClose();
   };
-
-  // ── Label shown inside the spinner button (patent ID path only) ───────────
-  const patentIdLoadingLabel =
-    loadingStatus === 'fetching'     ? 'Fetching from USPTO…'   :
-    loadingStatus === 'describing'   ? 'Generating description…' :
-    loadingStatus === 'claims'       ? 'Isolating claims…'       :
-    //loadingStatus === 'infringement' ? 'Finding infringements…'  :
-    'Processing…';
 
   return (
     <>
@@ -168,11 +130,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
           <div className="pm-icon">📄</div>
           <div>
             <h2 className="pm-title">New Patent Analysis</h2>
-            <p className="pm-subtitle">
-              {activeTab === 'patentId'
-                ? 'Step 1 of 1 — Patent ID'
-                : 'Step 1 of 2 — Upload Patent'}
-            </p>
+            <p className="pm-subtitle">Step 1 of 2 — Upload Patent</p>
           </div>
         </div>
         <button onClick={handleCancel} className="pm-close" aria-label="Close">
@@ -182,32 +140,40 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
         </button>
       </div>
 
-      {/* Step indicator — only shown for upload tab */}
-      {activeTab === 'upload' && (
-        <div className="pm-steps">
-          <div className="pm-step active">
-            <div className="pm-step-dot">1</div>
-            <span>Upload</span>
-          </div>
-          <div className="pm-step-line" />
-          <div className="pm-step">
-            <div className="pm-step-dot">2</div>
-            <span>Context</span>
-          </div>
+      {/* Step indicator */}
+      <div className="pm-steps">
+        <div className="pm-step active">
+          <div className="pm-step-dot">1</div>
+          <span>Upload</span>
         </div>
-      )}
+        <div className="pm-step-line" />
+        <div className="pm-step">
+          <div className="pm-step-dot">2</div>
+          <span>Context</span>
+        </div>
+      </div>
 
-      {/* Body */}
+      {/* Body — scrollable */}
       <div className="pm-body">
 
-       
+        {/* Project Name */}
+        <div className="pm-field">
+          <label className="pm-label">Project Name <span className="pm-required">*</span></label>
+          <input
+            type="text"
+            value={projectName}
+            onChange={e => setProjectName(e.target.value)}
+            placeholder="e.g., Foldable Display Hinge Analysis"
+            className="pm-input"
+          />
+        </div>
 
         {/* Tabs */}
         <div className="pm-tabs">
           {['upload', 'patentId'].map(tab => (
             <button
               key={tab}
-              onClick={() => { setActiveTab(tab); setError(''); }}
+              onClick={() => setActiveTab(tab)}
               className={`pm-tab${activeTab === tab ? ' active' : ''}`}
             >
               <span>{tab === 'upload' ? '📤' : '📄'}</span>
@@ -216,48 +182,39 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
           ))}
         </div>
 
-        {/* ── UPLOAD TAB CONTENT ── */}
+        {/* Patent ID field — upload tab only — required */}
         {activeTab === 'upload' && (
-          <div>
-             {/* Project Name */}
-            <div className="pm-field">
-              <label className="pm-label">Project Name <span className="pm-required">*</span></label>
+          <div className="pm-field">
+            <label className="pm-label">Patent ID <span className="pm-required">*</span></label>
+            <div style={{ position: 'relative' }}>
+              <span style={{
+                position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
+                fontFamily: "'Inconsolata', monospace", fontSize: 13.5,
+                color: 'var(--accent, #2E7D32)', fontWeight: 700,
+                pointerEvents: 'none', userSelect: 'none',
+              }}>
+                local_
+              </span>
               <input
                 type="text"
-                value={projectName}
-                onChange={e => setProjectName(e.target.value)}
-                placeholder="e.g., Foldable Display Hinge Analysis"
-                className="pm-input"
+                value={localPatentId}
+                onChange={e => setLocalPatentId(e.target.value)}
+                placeholder="US1234"
+                className="pm-input pm-mono"
+                style={{ paddingLeft: 60 }}
               />
             </div>
-            {/* Patent ID field */}
-            <div className="pm-field">
-              <label className="pm-label">Patent ID <span className="pm-required">*</span></label>
-              <div style={{ position: 'relative' }}>
-                <span style={{
-                  position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)',
-                  fontFamily: "'Inconsolata', monospace", fontSize: 13.5,
-                  color: 'var(--accent, #2E7D32)', fontWeight: 700,
-                  pointerEvents: 'none', userSelect: 'none',
-                }}>
-                  local_
-                </span>
-                <input
-                  type="text"
-                  value={localPatentId}
-                  onChange={e => setLocalPatentId(e.target.value)}
-                  placeholder="US1234"
-                  className="pm-input pm-mono"
-                  style={{ paddingLeft: 60 }}
-                />
-              </div>
-              <p className="pm-hint">
-                Stored as <code style={{ fontFamily: 'Inconsolata, monospace', fontSize: 11, color: 'var(--accent)' }}>
-                  local_{localPatentId || 'US1234'}
-                </code> — required
-              </p>
-            </div>
+            <p className="pm-hint">
+              Stored as <code style={{ fontFamily: 'Inconsolata, monospace', fontSize: 11, color: 'var(--accent)' }}>
+                local_{localPatentId || 'US1234'}
+              </code> — required
+            </p>
+          </div>
+        )}
 
+        {/* Upload Tab */}
+        {activeTab === 'upload' && (
+          <div>
             <label
               htmlFor="file-upload"
               className="pm-dropzone"
@@ -334,7 +291,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
           </div>
         )}
 
-        {/* ── PATENT ID TAB CONTENT ── */}
+        {/* Patent ID Tab */}
         {activeTab === 'patentId' && (
           <div>
             <div className="pm-field">
@@ -346,30 +303,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
                 placeholder="e.g., US10203040B2"
                 className="pm-input pm-mono"
               />
-              <p className="pm-hint">We'll automatically fetch  your patent</p>
-            </div>
-
-            {/* Info banner explaining auto-flow */}
-            <div style={{
-              display: 'flex', gap: 10, alignItems: 'flex-start',
-              background: 'rgba(46,125,50,0.06)',
-              border: '1px solid rgba(46,125,50,0.18)',
-              borderLeft: '3px solid var(--accent, #2E7D32)',
-              borderRadius: '0 8px 8px 0',
-              padding: '12px 14px', marginBottom: 14,
-            }}>
-              <span style={{ fontSize: 16, flexShrink: 0 }}>⚡</span>
-              <div>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12.5, fontWeight: 600, color: 'var(--deep, #0D2818)', margin: '0 0 3px' }}>
-                  Fully automatic
-                </p>
-                <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12.5, fontWeight: 600, color: 'var(--deep, #0D2818)', margin: '0 0 3px' }}>
-                We'll create your patent
-              </p>
-              <p style={{ fontFamily: "'Jost', sans-serif", fontSize: 12, color: 'var(--ink2)', margin: 0, lineHeight: 1.5 }}>
-                To start the infringement analysis, click <strong style={{ color: 'var(--accent, #2E7D32)' }}>Start Analysis</strong> on the detail page.
-              </p>
-              </div>
+              <p className="pm-hint">We'll automatically fetch patent details from USPTO</p>
             </div>
 
             <div className="pm-formats">
@@ -381,10 +315,10 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
               </div>
               <div className="pm-formats-grid">
                 {[
-                  { label: 'US Granted',   examples: 'US10203040B2, US-10203040-B2' },
+                  { label: 'US Granted',  examples: 'US10203040B2, US-10203040-B2' },
                   { label: 'US Pre-grant', examples: 'US20240412550A1' },
-                  { label: 'EP Patents',   examples: 'EP1234567, EP-1234567-A1' },
-                  { label: 'WO Patents',   examples: 'WO2023123456' },
+                  { label: 'EP Patents',  examples: 'EP1234567, EP-1234567-A1' },
+                  { label: 'WO Patents',  examples: 'WO2023123456' },
                 ].map(f => (
                   <div key={f.label} className="pm-format-item">
                     <span className="pm-format-label">{f.label}</span>
@@ -393,57 +327,6 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
                 ))}
               </div>
             </div>
-
-            {/* Progress steps shown while loading */}
-            {loading && (
-              <div style={{
-                display: 'flex', flexDirection: 'column', gap: 8,
-                marginTop: 16, padding: '12px 14px',
-                background: 'var(--surf, #F5F2EC)',
-                border: '1px solid var(--rule, rgba(13,40,24,0.08))',
-                borderRadius: 10,
-              }}>
-                {[
-                  { key: 'fetching',     label: 'Fetching from USPTO' },
-                  { key: 'describing',   label: 'Generating description' },
-                  { key: 'claims',       label: 'Isolating claims' },
-                  { key: 'infringement', label: 'Finding infringements' },
-                ].map((s, i, arr) => {
-                  const keys     = arr.map(a => a.key);
-                  const current  = keys.indexOf(loadingStatus);
-                  const mine     = keys.indexOf(s.key);
-                  const isDone   = mine < current;
-                  const isActive = mine === current;
-                  return (
-                    <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: isDone ? 'var(--accent, #2E7D32)' : isActive ? 'rgba(46,125,50,0.15)' : 'var(--rule2)',
-                        border: isActive ? '2px solid var(--accent, #2E7D32)' : '2px solid transparent',
-                        transition: 'all 0.3s',
-                      }}>
-                        {isDone ? (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        ) : isActive ? (
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', border: '2px solid var(--accent, #2E7D32)', borderTopColor: 'transparent', animation: 'pmSpin 0.75s linear infinite' }} />
-                        ) : (
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink3)' }} />
-                        )}
-                      </div>
-                      <span style={{
-                        fontFamily: "'Jost', sans-serif", fontSize: 12.5,
-                        color: isDone ? 'var(--accent)' : isActive ? 'var(--ink)' : 'var(--ink3)',
-                        fontWeight: isActive ? 600 : 400,
-                        transition: 'all 0.3s',
-                      }}>
-                        {s.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 
@@ -460,7 +343,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
 
       {/* Footer */}
       <div className="pm-footer">
-        <button onClick={handleCancel} className="pm-btn-ghost" disabled={loading}>Cancel</button>
+        <button onClick={handleCancel} className="pm-btn-ghost">Cancel</button>
         <button
           onClick={handleContinue}
           disabled={!isValid || loading}
@@ -469,11 +352,11 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
           {loading ? (
             <>
               <span className="pm-spinner" />
-              {activeTab === 'patentId' ? patentIdLoadingLabel : 'Loading…'}
+              {activeTab === 'patentId' ? 'Fetching from USPTO...' : 'Loading...'}
             </>
           ) : (
             <>
-              {activeTab === 'patentId' ? 'Fetch & Create Patent' : 'Continue'}
+              Continue
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
               </svg>
@@ -485,7 +368,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
   );
 };
 
-// ─── Step 2: Add Context (upload tab only) ────────────────────────────────────
+// ─── Step 2: Add Context ──────────────────────────────────────────────────────
 
 const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
   const navigate = useNavigate();
@@ -495,6 +378,8 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
   const [loading, setLoading]             = useState(false);
   const [loadingStatus, setLoadingStatus] = useState('');
   const [error, setError]                 = useState('');
+
+  const isUspto = step1Data?.activeTab === 'patentId';
 
   const handleBack = () => {
     if (window.confirm('Are you sure you want to go back? Your progress will be lost.')) onBack();
@@ -507,6 +392,10 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
       let caseId = step1Data.caseId;
 
       if (!caseId) {
+        // ── BUG 5 FIX ─────────────────────────────────────────────────────────
+        // loadingStatus ordering was: createPatent shows nothing → then 'uploading'.
+        // Fix: set 'creating' first so the user sees meaningful feedback during
+        // the most expensive call, then 'uploading' for the file step.
         setLoadingStatus('creating');
 
         const keywordsArray = step1Data.keywords
@@ -515,50 +404,72 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
 
         const caseDetails = {
           ...(step1Data.caseDetails || {}),
-          title:        step1Data.projectName,
-          description:  context,
-          _id:          step1Data.patentId,
-          inventors:    step1Data.inventors    || '',
-          keywords:     keywordsArray,
-          filing_date:  step1Data.filingDate   || '',
-          status:       step1Data.currentStatus || '',
-          source:       'manual',
+          title:       step1Data.projectName,
+          description: context,
+          _id:         step1Data.patentId,
+          inventors:   step1Data.inventors   || '',
+          keywords:    keywordsArray,
+          filing_date: step1Data.filingDate  || '',
+          status:      step1Data.currentStatus || '',
+          source:      'manual',
         };
-
-        const created = await patentApi.createPatent(caseDetails);
+        // Step 1: create patent with metadata only — no file
+        const created = await patentApi.createPatent(caseDetails); // remove step1Data.file
         caseId = created.case_id;
         if (created.case_data) dispatch(addPatent(created.case_data));
-
+          console.log('✅ Patent created with ID:', caseId, 'Case Data:', created.case_data);
+        // Step 2: upload file separately via the dedicated endpoint — always runs
         if (step1Data.file) {
           setLoadingStatus('uploading');
           try {
             await patentApi.uploadFileToCase(caseId, step1Data.file);
+            console.log('✅ File uploaded for case:', caseId);
           } catch (uploadErr) {
             console.warn('⚠️ File upload failed (non-blocking):', uploadErr.message);
           }
         }
 
-       /* patentApi.triggerSimilarityAnalysis(caseId, keywordsArray).catch(err => {
+        // ── BUG 1 FIX (upload path) ───────────────────────────────────────────
+        // triggerSimilarityAnalysis now consistently called for BOTH paths here
+        // in Step 2, rather than only sometimes (USPTO path used to skip it).
+        patentApi.triggerSimilarityAnalysis(caseId, keywordsArray).catch(err => {
           console.warn('Similarity analysis trigger failed (non-blocking):', err.message);
-        });*/
+        });
+
+      } else {
+        // USPTO path — caseId already exists from Step 1 fetch.
+        // Update description if the user changed it.
+        if (context !== step1Data.caseDetails?.description) {
+          await patentApi.updateCase(caseId, { description: context }).catch(() => {});
+        }
+
+        // ── BUG 1 FIX (USPTO path) ────────────────────────────────────────────
+        // triggerSimilarityAnalysis was never called for the USPTO flow.
+        // The patent was fetched and the user navigated away with no analysis.
+        const keywords = step1Data.caseDetails?.keywords || [];
+        patentApi.triggerSimilarityAnalysis(caseId, keywords).catch(err => {
+          console.warn('Similarity analysis trigger failed (non-blocking):', err.message);
+        });
       }
 
-     /* setLoadingStatus('claims');
+      const caseDetails = await patentApi.getCaseById(caseId);
+      console.log('📦 Case Details from backend:', caseDetails);
+
+      setLoadingStatus('claims');
       const claims = await patentApi.getClaims(caseId);
 
       setLoadingStatus('infringement');
-      const analysisData  = await patentApi.getInfringementAnalysis(caseId);
+      const analysisData = await patentApi.getInfringementAnalysis(caseId);
       const infringements = analysisData.similar_infringements || [];
 
       if (infringements.length > 0) {
         await patentApi.updateCase(caseId, { infringements, claims });
-      }*/
+      }
 
       onSuccess?.();
       navigate(`/patent-detail?id=${caseId}`);
     } catch (err) {
-     // setError(err?.message || 'Analysis failed. Please try again.');
-      setError(err?.message || 'Error occurred while creating patent. Please try again.');
+      setError(err?.message || 'Analysis failed. Please try again.');
     } finally {
       setLoading(false);
       setLoadingStatus('');
@@ -567,9 +478,14 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
 
   return (
     <>
+      {/* Header */}
       <div className="pm-header">
         <div className="pm-header-left">
-          <div className="pm-icon">🔍</div>
+          <div className="pm-icon" style={isUspto ? { background: '#003661', padding: 0, overflow: 'hidden' } : {}}>
+            {isUspto
+              ? <img src="/images/uspto.jpg" alt="USPTO" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : '🔍'}
+          </div>
           <div>
             <h2 className="pm-title">New Patent Analysis</h2>
             <p className="pm-subtitle">Step 2 of 2 — Add Context</p>
@@ -585,6 +501,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
         </button>
       </div>
 
+      {/* Step indicator */}
       <div className="pm-steps">
         <div className="pm-step done">
           <div className="pm-step-dot">
@@ -601,7 +518,10 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
         </div>
       </div>
 
+      {/* Body */}
       <div className="pm-body">
+
+        {/* Context banner */}
         <div className="pm-banner">
           <div className="pm-banner-ico">💬</div>
           <div>
@@ -613,21 +533,28 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
           </div>
         </div>
 
+        {/* Patent reference */}
         <div className="pm-field">
           <label className="pm-label">Patent Reference</label>
           <div className="pm-readonly">
-            {step1Data?.patentId || step1Data?.file?.name || '—'}
+            {step1Data?.caseDetails?._id || step1Data?.patentId || step1Data?.file?.name || '—'}
           </div>
         </div>
 
-        {(step1Data.inventors || step1Data.keywords || step1Data.filingDate) && (
+        {/* Captured details summary — upload tab only */}
+        {step1Data?.activeTab === 'upload' && (
+          step1Data.inventors || step1Data.keywords || step1Data.filingDate
+        ) && (
           <div className="pm-field">
             <label className="pm-label">Captured Details</label>
             <div style={{
               background: 'var(--surf, #F5F2EC)',
               border: '1px solid var(--rule, rgba(13,40,24,0.09))',
-              borderRadius: 9, padding: '10px 13px',
-              display: 'flex', flexDirection: 'column', gap: 6,
+              borderRadius: 9,
+              padding: '10px 13px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
             }}>
               {step1Data.inventors && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
@@ -657,6 +584,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
           </div>
         )}
 
+        {/* Context textarea */}
         <div className="pm-field">
           <label className="pm-label">Context Description</label>
           <textarea
@@ -669,6 +597,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
           <p className="pm-hint">Be specific about technical details, target markets, and key differentiators</p>
         </div>
 
+        {/* AI refinement questions */}
         <div className="pm-ai-questions">
           <div className="pm-ai-title">
             <span className="pm-ai-badge">AI</span>
@@ -698,6 +627,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
         )}
       </div>
 
+      {/* Footer */}
       <div className="pm-footer">
         <button onClick={handleBack} disabled={loading} className="pm-btn-ghost">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -709,18 +639,18 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
           {loading ? (
             <>
               <span className="pm-spinner" />
-              {loadingStatus === 'creating'     ? 'Creating Patent…'       :
-               loadingStatus === 'uploading'    ? 'Uploading File…'        :
-               //loadingStatus === 'claims'       ? 'Isolating Claims…'      :
-               //loadingStatus === 'infringement' ? 'Finding Infringements…' :
-               'Processing…'}
+              {loadingStatus === 'creating'     ? 'Creating Patent...'        :
+               loadingStatus === 'uploading'    ? 'Uploading File...'         :
+               loadingStatus === 'claims'       ? 'Isolating Claims...'       :
+               loadingStatus === 'infringement' ? 'Finding Infringements...'  :
+               'Processing...'}
             </>
           ) : (
             <>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
-              Start creating patent
+              Start Analysis
             </>
           )}
         </button>
@@ -732,7 +662,6 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
 // ─── Main Modal Shell ─────────────────────────────────────────────────────────
 
 const ProjectModal = ({ isOpen, onClose }) => {
-  const navigate                  = useNavigate();
   const [step, setStep]           = useState(1);
   const [step1Data, setStep1Data] = useState(null);
 
@@ -740,43 +669,28 @@ const ProjectModal = ({ isOpen, onClose }) => {
     if (isOpen) { setStep(1); setStep1Data(null); }
   }, [isOpen]);
 
+  // Lock body scroll when open
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleStep1Continue = (data) => {
-    if (data.skipStep2) {
-      // Patent ID path — everything done in Step 1, close and navigate
-      onClose();
-      navigate(`/patent-detail?id=${data.caseId}`);
-      return;
-    }
-    // Upload path — show Step 2
-    setStep1Data(data);
-    setStep(2);
-  };
-
+  const handleStep1Continue = (data) => { setStep1Data(data); setStep(2); };
   const handleClose = () => { setStep(1); setStep1Data(null); onClose(); };
 
   return (
     <div className="pm-overlay" onClick={e => { if (e.target === e.currentTarget) handleClose(); }}>
       <div className="pm-shell">
-        {step === 1 && (
-          <UploadPatentStep onClose={handleClose} onContinue={handleStep1Continue} />
-        )}
-        {step === 2 && (
-          <AddContextStep
-            step1Data={step1Data}
-            onBack={() => setStep(1)}
-            onClose={handleClose}
-            onSuccess={handleClose}
-          />
-        )}
+        {step === 1 && <UploadPatentStep onClose={handleClose} onContinue={handleStep1Continue} />}
+        {step === 2 && <AddContextStep step1Data={step1Data} onBack={() => setStep(1)} onClose={handleClose} onSuccess={handleClose} />}
       </div>
-      {/* all your existing <style> block unchanged */}
+
       <style>{`
         .pm-overlay {
           position: fixed;
@@ -1363,7 +1277,6 @@ const ProjectModal = ({ isOpen, onClose }) => {
           .pm-step     { font-size: 11px; }
         }
       `}</style>
-
     </div>
   );
 };

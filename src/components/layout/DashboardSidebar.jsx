@@ -1,8 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { useState } from 'react'
+import { Bug } from 'lucide-react'
 
-
+const BUG_REPORT_URL =
+  import.meta.env.VITE_BUG_REPORT_URL ||
+  'https://docs.google.com/forms/d/1uQ38IALRKOSoLBgeyzNASZnr7X9STgT1LjA--pQyIXo/'
 
 const NAV_ITEMS = [
   {
@@ -86,6 +89,13 @@ const NAV_ITEMS = [
         ),
         label: 'Settings', id: 'settings', badge: null,
       },
+      {
+        icon: <Bug className="sb-icon" strokeWidth={1.5} />,
+        label: 'Report Bug',
+        id: 'report-bug',
+        badge: null,
+        externalUrl: BUG_REPORT_URL,
+      },
     ],
   },
 ]
@@ -119,8 +129,12 @@ export default function DashboardSidebar({ activeItem, onItemClick, isOpen, onCl
   const initials    = getInitials(user)
 
   const handleClick = (item) => {
-    onItemClick(item.id)
     onClose()
+    if (item.externalUrl) {
+      window.open(item.externalUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+    onItemClick(item.id)
     if (item.href) navigate(item.href)
   }
 

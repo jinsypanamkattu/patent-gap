@@ -16,6 +16,39 @@ const apiError = (error, fallback) => {
   throw err;
 };
 
+/** Flat API chart_data rows → map keyed by parent claim index for the Claims Chart UI. */
+export const normalizeChartRowsToMap = (rows, parentClaims = []) => {
+  const chart = {};
+  if (!Array.isArray(rows) || rows.length === 0) return chart;
+
+  const refOrder = [];
+  const keyForRef = (ref) => {
+    const r = (ref || '').trim();
+    if (parentClaims.length) {
+      const idx = parentClaims.findIndex(
+        (c) => typeof c === 'string' && (c === ref || c.trim() === r)
+      );
+      if (idx >= 0) return String(idx + 1);
+    }
+    let i = refOrder.indexOf(r);
+    if (i < 0) {
+      refOrder.push(r);
+      i = refOrder.length - 1;
+    }
+    return String(i + 1);
+  };
+
+  rows.forEach((row) => {
+    const key = keyForRef(row.ref_claim);
+    if (!chart[key]) chart[key] = [];
+    chart[key].push({
+      entry_id: row.entry_id ?? (row.infringing_claim || row.claim || '').slice(0, 32) || '—',
+      similarity_score: row.calculated_similarity_score ?? row.similarity_score ?? 0,
+    });
+  });
+  return chart;
+};
+
 export const patentApi = {
 
   getAllCases: async (page = 1) => {
@@ -60,11 +93,14 @@ export const patentApi = {
     }
   },
 
-  getInfringementChart: async (caseId) => {
+  getInfringementChart: async (caseId, parentClaims = []) => {
     try {
       const { data } = await axiosInstance.get(`/infringement-chart/${caseId}`);
       console.log('📊 Infringement chart data received:', data);
-      return data.infringement_chart || null;
+      const raw = data.chart_data ?? data.infringement_chart ?? null;
+      if (raw == null) return null;
+      if (Array.isArray(raw)) return normalizeChartRowsToMap(raw, parentClaims);
+      return typeof raw === 'object' ? raw : null;
     } catch (error) {
       apiError(error, 'Failed to fetch infringement chart');
     }

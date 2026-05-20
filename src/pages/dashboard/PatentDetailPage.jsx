@@ -13,7 +13,7 @@ import InfringementModal from '../../components/dashboard/InfringementModal';
 import DocumentModal from '../../components/dashboard/DocumentModal';    // ← NEW
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
 import MatchCard from '../../components/dashboard/MatchCard';
-import { patentApi } from '../../api/patentApi';
+import { patentApi, normalizeChartRowsToMap } from '../../api/patentApi';
 import { deletePatent, updatePatent } from '../../store/slices/patentSlice';
 import SearchLimitationEditor from '../../components/dashboard/SearchLimitationEditor';
 import NotificationBell from '../../components/dashboard/NotificationBell';
@@ -144,6 +144,26 @@ const getSourceName = (id = '') => {
   if (id.includes('local')) return 'Manual Entry';
   return 'Patent Gap';
 };
+
+/** True when /infringement-chart should run (legacy or not yet embedding-scored). */
+const needsInfringementChartApi = (caseInfringements) => {
+  if (!Array.isArray(caseInfringements) || caseInfringements.length === 0) {
+    return false;
+  }
+  const nested = caseInfringements[0]?.infringements;
+  if (!Array.isArray(nested) || nested.length === 0) {
+    return true;
+  }
+  return !('calculated_similarity_score' in nested[0]);
+};
+
+const flattenInfringementScoreRows = (caseInfringements) =>
+  (caseInfringements || []).flatMap((entry) =>
+    Array.isArray(entry?.infringements) ? entry.infringements : []
+  );
+
+const buildClaimsChartFromStoredRows = (caseInfringements, parentClaims = []) =>
+  normalizeChartRowsToMap(flattenInfringementScoreRows(caseInfringements), parentClaims);
 
 // ─────────────────────────────────────────────────────────────
 // Normalise a raw infringement object into a consistent shape
@@ -882,10 +902,15 @@ const PatentDetailPage = () => {
           const hasClaims = Array.isArray(c?.claims) && c.claims.length > 0;
 
           if (hasInfringements && hasClaims) {
-            try {
-              const chart = await patentApi.getInfringementChart(caseId);
-              if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
-            } catch (e) { /* silent */ }
+            if (needsInfringementChartApi(c.infringements)) {
+              try {
+                const chart = await patentApi.getInfringementChart(caseId, c.claims);
+                if (chart && Object.keys(chart).length > 0) c.claimsChart = chart;
+              } catch (e) { /* silent */ }
+            } else {
+              const chart = buildClaimsChartFromStoredRows(c.infringements, c.claims);
+              if (Object.keys(chart).length > 0) c.claimsChart = chart;
+            }
           }
 
           return c;
@@ -1051,10 +1076,14 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
       await patentApi.updateCase(caseId, { infringements, claims: newClaims });
 
       let claimsChart = {};
-      if (newClaims.length > 0) {
-        try {
-          claimsChart = await patentApi.getInfringementChart(caseId) || {};
-        } catch (e) { console.warn('Claims chart unavailable', e); }
+      if (newClaims.length > 0 && infringements.length > 0) {
+        if (needsInfringementChartApi(infringements)) {
+          try {
+            claimsChart = await patentApi.getInfringementChart(caseId, newClaims) || {};
+          } catch (e) { console.warn('Claims chart unavailable', e); }
+        } else {
+          claimsChart = buildClaimsChartFromStoredRows(infringements, newClaims);
+        }
       }
 
       setCaseData(prev => ({ ...prev, infringements, claims: newClaims, claimsChart }));

@@ -42,8 +42,8 @@ export const normalizeChartRowsToMap = (rows, parentClaims = []) => {
     const key = keyForRef(row.ref_claim);
     if (!chart[key]) chart[key] = [];
     chart[key].push({
-      entry_id: row.entry_id ?? (row.infringing_claim || row.claim || '').slice(0, 32) || '—',
-      similarity_score: row.calculated_similarity_score ?? row.similarity_score ?? 0,
+      entry_id: row.entry_id || (row.infringing_claim || row.claim || '').slice(0, 32) || '-',
+      similarity_score: row.calculated_similarity_score || row.similarity_score || 0,
     });
   });
   return chart;
@@ -97,7 +97,7 @@ export const patentApi = {
     try {
       const { data } = await axiosInstance.get(`/infringement-chart/${caseId}`);
       console.log('📊 Infringement chart data received:', data);
-      const raw = data.chart_data ?? data.infringement_chart ?? null;
+      const raw = data.chart_data || data.infringement_chart || null;
       if (raw == null) return null;
       if (Array.isArray(raw)) return normalizeChartRowsToMap(raw, parentClaims);
       return typeof raw === 'object' ? raw : null;

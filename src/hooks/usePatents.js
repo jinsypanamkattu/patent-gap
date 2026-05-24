@@ -56,6 +56,7 @@ export const usePatents = () => {
   const loadStats = useCallback(async () => {
     try {
       const stats = await patentApi.getStats(userId);
+      console.log('Loaded stats:', stats);
       if (stats) {
         dispatch(setStats({
           activeScans: stats.activeScans || 0,

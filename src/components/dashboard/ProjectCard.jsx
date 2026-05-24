@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AnalysisStatusIcon = ({ status }) => {
   const s = String(status || '').toLowerCase();
+  
 
   if (s === 'started') {
     return (
@@ -36,7 +37,7 @@ const ProjectCard = ({
   hasUpdates,
 }) => {
   const navigate = useNavigate();
-  
+  console.log('Risk level:', riskLevel);
 
   const handleCardClick = () => {
     navigate('/patent-detail', {
@@ -61,7 +62,7 @@ const ProjectCard = ({
   const filledDots = Math.round((pct / 100) * 5);
 
   return (
-    <div onClick={handleCardClick} className="pcard" style={{ cursor: 'pointer' }}>
+    <div onClick={handleCardClick} className={`pcard ${badgeClass}`} style={{ cursor: 'pointer' }}>
 
             <div className="pcard-top" style={{ flexWrap: 'wrap', gap: 4 }}>
         {/* ── Left: status + risk badges ── */}
@@ -69,7 +70,7 @@ const ProjectCard = ({
           <span className="pcard-dot" />
           {badgeLabel}
         </span>
-
+       
         {riskLevel === 'high' && (
           <span className="pcard-badge expired">
             <span className="pcard-dot" />

@@ -154,7 +154,7 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
 
   // ── Label shown inside the spinner button (patent ID path only) ───────────
   const patentIdLoadingLabel =
-    loadingStatus === 'fetching'     ? 'Fetching from USPTO…'   :
+    loadingStatus === 'fetching'     ? 'Fetching patent information…'   :
     loadingStatus === 'describing'   ? 'Generating description…' :
     loadingStatus === 'claims'       ? 'Isolating claims…'       :
     //loadingStatus === 'infringement' ? 'Finding infringements…'  :
@@ -404,10 +404,10 @@ const UploadPatentStep = ({ onClose, onContinue }) => {
                 borderRadius: 10,
               }}>
                 {[
-                  { key: 'fetching',     label: 'Fetching from USPTO' },
+                  { key: 'fetching',     label: 'Fetching patent information…' },
                   { key: 'describing',   label: 'Generating description' },
                   { key: 'claims',       label: 'Isolating claims' },
-                  { key: 'infringement', label: 'Finding infringements' },
+                  //{ key: 'infringement', label: 'Finding infringements' },
                 ].map((s, i, arr) => {
                   const keys     = arr.map(a => a.key);
                   const current  = keys.indexOf(loadingStatus);
@@ -555,6 +555,7 @@ const AddContextStep = ({ step1Data, onBack, onClose, onSuccess }) => {
       }*/
 
       onSuccess?.();
+      console.log('Navigating to patent detail with caseId:', caseId);
       navigate(`/patent-detail?id=${caseId}`);
     } catch (err) {
      // setError(err?.message || 'Analysis failed. Please try again.');

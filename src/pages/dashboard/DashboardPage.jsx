@@ -120,7 +120,7 @@ const calculatePatentRisk = (infringements = []) => {
 
 
 const STAT_STATUS_MAP = {
-  activeScans:      ['patented'],
+  activeScans:      ['patented','active'],
   patentsAnalyzed:  'all',
   highRiskMatches:  ['patented'],
   clearedPatents:   ['complete', 'cleared', 'expired', 'abandoned'],
@@ -193,8 +193,10 @@ export default function DashboardPage() {
 
   // Toggle stat card filter: clicking the active card resets to 'all'
   const handleStatCardClick = (cardKey) => {
+    //alert('cardKey: ' + cardKey + '\nstatusFilter: ' + statusFilter);
     console.log('Stat card clicked:', cardKey);
     const next = statusFilter === cardKey ? 'all' : cardKey;
+    //alert('Next filter: ' + next);
     filterPatents({ status: next });
   };
 
@@ -207,7 +209,7 @@ export default function DashboardPage() {
         ? new Date(lastUpdated) > lastViewed
         : false;  // ← if either is missing, no badge*/
 
-        const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+        /*const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
 
         const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
 
@@ -221,7 +223,31 @@ export default function DashboardPage() {
 
         const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
           ? lastUpdated > lastViewed
-          : false;
+          : false;*/
+          const MONTHS = {
+            Jan:'01', Feb:'02', Mar:'03', Apr:'04', May:'05', Jun:'06',
+            Jul:'07', Aug:'08', Sep:'09', Oct:'10', Nov:'11', Dec:'12'
+          };
+
+          const parseRFC2822 = (str) => {
+            // "Sat, 23 May 2026 10:06:53 GMT"
+            const m = str.match(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/);
+            if (!m) return null;
+            const [, , day, mon, year, time] = m;
+            const mm = MONTHS[mon];
+            if (!mm) return null;
+            return new Date(`${year}-${mm}-${day.padStart(2, '0')}T${time}Z`);
+          };
+
+          const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
+          const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
+          const lastUpdated = rawUpdated ? parseRFC2822(rawUpdated) : null;
+
+          const isValid = (d) => d instanceof Date && !isNaN(d);
+
+          const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+            ? lastUpdated > lastViewed
+            : false;
 
     return {
       id: p._id,
@@ -242,11 +268,14 @@ export default function DashboardPage() {
       progress: calculatePatentOverlapScore(p.infringements || []),
       infringementAnalysisStatus: p.infringement_analysis_status || 'unknown',
       hasUpdates,
+      last_viewed: p.last_viewed,
+      last_updated: p.last_updated,
     };
   });
 
-  console.log('📊 Raw patent fields:', patents.patents[0]);
-  console.log('📋 All statuses:', mappedPatents.map(p => ({ title: p.title, status: p.status, id: p.patentNumber })));
+  console.log('📊 Raw patent fields:', patents.patents);
+  
+  console.log('📋 All statuses:', mappedPatents.map(p => ({ title: p.title, status: p.status, id: p.patentNumber, updates: p.hasUpdates, last_viewed: p.last_viewed, last_updated: p.last_updated })));
   
 
   const localHighRiskMatches = mappedPatents.filter(p => p.isHighRisk).length;
@@ -272,9 +301,12 @@ export default function DashboardPage() {
   const activePatents = patents.patents.filter(p =>
     ['patented', 'active'].includes(getStatusShorthand(p.status))
   );
+  
   const closedPatents = patents.patents.filter(p =>
     ['expired', 'abandoned'].includes(getStatusShorthand(p.status))
   );
+  console.log('Active patents count:', activePatents.length);
+  console.log('Closed patents count:', closedPatents.length);
 
   const sectionTitle = (() => {
     if (searchQuery.trim()) return `Results for "${searchQuery}"`;
@@ -442,7 +474,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Stats ── */}
+          {/* ── Stats ── */
+          console.log('📊 Stats:', patents.stats)
+          
+        
+          }
           <div className="stats-grid">
             <StatCard
               title="Active Scans"
@@ -471,9 +507,11 @@ export default function DashboardPage() {
               onClick={() => handleStatCardClick('highRiskMatches')}
               isActive={statusFilter === 'highRiskMatches'}
             />
+            
             <StatCard
               title="Cleared Patents"
-              value={ui.loading ? '—' : (patents.stats.clearedPatents || closedPatents.length)}
+              //value={ui.loading ? '—' : (patents.stats.clearedPatents || closedPatents.length)}
+              value={ui.loading ? '—' : (closedPatents.length)}
               subtitle="No infringement"
               icon={<CheckCircle size={18} />}
               color="green"
@@ -560,6 +598,7 @@ export default function DashboardPage() {
 
           {/* ── Patent Cards Grid ── */}
           {!ui.loading && filteredPatents.length > 0 && (
+            
             <>
               <div className="patents-grid">
                 {filteredPatents.map((patent, index) => (
@@ -568,6 +607,7 @@ export default function DashboardPage() {
                     className="animate-fadeInUp"
                     style={{ animationDelay: `${0.5 + index * 0.1}s`, opacity: 0 }}
                   >
+                    
                    <ProjectCard {...patent} riskLevel={patent.riskLevel} hasUpdates={patent.hasUpdates} />
                   </div>
                 ))}

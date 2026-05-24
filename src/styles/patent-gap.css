@@ -533,13 +533,13 @@ footer { background: var(--deep); border-top: 1px solid rgba(255,255,255,0.06); 
 .pcard { background: var(--surf); border-radius: var(--radius); padding: 18px 18px 16px; border: 1px solid rgba(255,255,255,0.55); box-shadow: var(--shadow-sm); transition: transform 0.22s, box-shadow 0.22s; cursor: pointer; display: flex; flex-direction: column; }
 .pcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
 .pcard.patented  { background: linear-gradient(155deg, rgba(46,125,50,0.05) 0%, var(--surf) 55%); }
-.pcard.abandoned { background: linear-gradient(155deg, rgba(46,125,50,0.03) 0%, var(--surf) 55%); }
+.pcard.abandoned { background: linear-gradient(155deg, rgba(125, 75, 46, 0.03) 0%, var(--surf) 55%); }
 .pcard.expired   { background: linear-gradient(155deg, rgba(185,28,28,0.04) 0%, var(--surf) 55%); }
 .pcard-top  { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 11px; gap: 8px; }
 .pcard-badge { display: inline-flex; align-items: center; gap: 5px; font-family: 'Inconsolata', monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.10em; padding: 4px 9px; border-radius: 5px; }
 .pcard-dot  { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 .pcard-badge.patented  { background: rgba(46,125,50,0.10); color: #1b5e20; }
-.pcard-badge.abandoned { background: var(--acc-soft);      color: var(--accent); }
+.pcard-badge.abandoned { background: var(--amber-soft);      color: var(--amber); }
 .pcard-badge.expired   { background: var(--red-soft);      color: var(--red); }
 .card-ext   { width: 26px; height: 26px; border-radius: 6px; border: none; background: rgba(13,40,24,0.06); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink3); transition: all 0.18s; flex-shrink: 0; }
 .card-ext:hover { background: rgba(13,40,24,0.11); color: var(--ink); }

@@ -5,7 +5,7 @@
 import axiosInstance from './axiosConfig';
 
 // ── Constants ───────────────────────────────────────────────
-const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+const TIMEOUT_MS = 5 * 60 * 1000; // 2 minutes
 
 
 // ── Shared error normaliser ──────────────────────────────────

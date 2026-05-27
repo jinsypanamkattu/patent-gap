@@ -2,12 +2,61 @@ import { useNavigate } from 'react-router-dom';
 
 const AnalysisStatusIcon = ({ status }) => {
   const s = String(status || '').toLowerCase();
-  
 
+  // Loader for "started"
   if (s === 'started') {
     return (
-      <span title="Infringement analysis incomplete" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: '50%', background: 'rgba(185,28,28,0.10)', flexShrink: 0 }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <span
+        title="Analysis in progress"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
+          height: 22,
+          flexShrink: 0,
+        }}
+      >
+        <span
+          style={{
+            width: 14,
+            height: 14,
+            border: '2px solid rgba(185,28,28,0.2)',
+            borderTop: '2px solid #B91C1C',
+            borderRadius: '50%',
+            animation: 'spinLoader 0.8s linear infinite',
+          }}
+        />
+      </span>
+    );
+  }
+
+  // Error icon
+  if (s === 'error') {
+    return (
+      <span
+        title="Infringement analysis failed"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: 'rgba(185,28,28,0.10)',
+          flexShrink: 0,
+        }}
+      >
+        <svg
+          width="11"
+          height="11"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#B91C1C"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/>
           <line x1="12" y1="17" x2="12.01" y2="17"/>
@@ -18,7 +67,6 @@ const AnalysisStatusIcon = ({ status }) => {
 
   return null;
 };
-
 const ProjectCard = ({
   id,
   title,

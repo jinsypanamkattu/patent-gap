@@ -159,6 +159,33 @@ export default function DashboardPage() {
     loadUserProfile();
   }, []);
 
+ /* useEffect(() => {
+  const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          //handleLoadDashboard(); // ← fresh data including updated last_viewed
+          setTimeout(() => handleLoadDashboard(), 1000); // ← wait 1s for last_viewed write
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);*/
+
+    useEffect(() => {
+        // Only poll if any patent has an in-flight analysis
+        const hasInFlight = patents.patents.some(p => {
+          const s = String(p.infringement_analysis_status || '').toLowerCase();
+          return s !== 'completed' && s !== '' && s !== 'unknown' && s !== 'none';
+        });
+
+        if (!hasInFlight) return;
+
+        const interval = setInterval(() => {
+          handleLoadDashboard(); // ← re-fetches all patents including updated statuses
+        }, 30 * 1000); // every 30s
+
+        return () => clearInterval(interval);
+      }, [patents.patents]);
+
   const handleLoadDashboard = async () => {
     console.log('🔐 Session:', JSON.parse(localStorage.getItem('session') || '{}'));
     await Promise.all([loadPatents(1, false), loadStats()]);
@@ -229,7 +256,7 @@ export default function DashboardPage() {
             Jul:'07', Aug:'08', Sep:'09', Oct:'10', Nov:'11', Dec:'12'
           };
 
-          const parseRFC2822 = (str) => {
+         /* const parseRFC2822 = (str) => {
             // "Sat, 23 May 2026 10:06:53 GMT"
             const m = str.match(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/);
             if (!m) return null;
@@ -241,13 +268,43 @@ export default function DashboardPage() {
 
           const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
           const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
-          const lastUpdated = rawUpdated ? parseRFC2822(rawUpdated) : null;
+          const lastUpdated = rawUpdated ? parseRFC2822(rawUpdated) : null;*/
+          // BEFORE — only handles RFC 2822
+
+          // AFTER — handles both RFC 2822 and ISO
+          const parseAnyDate = (str) => {
+            if (!str) return null;
+            // Try RFC 2822: "Sun, 24 May 2026 17:22:54 GMT"
+            const m = str.match(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/);
+            if (m) {
+              const [, , day, mon, year, time] = m;
+              const mm = MONTHS[mon];
+              if (!mm) return null;
+              return new Date(`${year}-${mm}-${day.padStart(2, '0')}T${time}Z`);
+            }
+            // Fallback: ISO or any other format new Date() can handle
+            const d = new Date(str);
+            return isNaN(d.getTime()) ? null : d;
+          };
+
+          const lastViewed  = p.last_viewed  ? parseAnyDate(p.last_viewed)  : null;
+          const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
+          const lastUpdated = rawUpdated     ? parseAnyDate(rawUpdated)      : null;
 
           const isValid = (d) => d instanceof Date && !isNaN(d);
 
-          const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+          const analysisStatus = String(p.infringement_analysis_status || '').toLowerCase();
+          const analysisCompleted = analysisStatus === 'completed';
+
+          const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
             ? lastUpdated > lastViewed
             : false;
+
+          
+
+         /* const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+            ? lastUpdated > lastViewed
+            : false;*/
 
     return {
       id: p._id,
@@ -324,7 +381,7 @@ export default function DashboardPage() {
 
   // Navigate to patent detail when clicking a notification row
   const handleNotificationPatentClick = (patent) => {
-    navigate('/patent-detail', {
+    navigate(`/patent-detail?id=${patent.id}`, {
       state: {
         id: patent.id,
         title: patent.title,
@@ -491,7 +548,8 @@ export default function DashboardPage() {
             />
             <StatCard
               title="Patents Analyzed"
-              value={ui.loading ? '—' : (patents.stats.patentsAnalyzed || patents.patents.length)}
+             // value={ui.loading ? '—' : (patents.stats.patentsAnalyzed || patents.patents.length)}
+              value={ui.loading ? '—' : (patents.patents.length)}
               subtitle="Total"
               icon={<FileText size={18} />}
               color="purple"
@@ -677,6 +735,14 @@ export default function DashboardPage() {
       </main>
 
       <style>{`
+              @keyframes spinLoader {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }

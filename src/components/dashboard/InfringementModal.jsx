@@ -64,7 +64,7 @@ const normaliseInfringement = (m) => {
       type:          'patent',
       title:         m.entry_title || m.title || `Case ${m.case_id}`,
       id:            m.case_id,
-      url:           m.document_urls?.[0] || m.entry_url || null,
+      url:           m.document_urls?.[0] || m.entry_url || m.url || null,
       source:        m.source || 'unknown',
       score:         calculateOverlapScore(m.infringements),
       riskLevel:     calculateOverallRisk(m.infringements),
@@ -181,6 +181,7 @@ const InfringementModal = ({
   const entryId    = normInfData?.id      || match.id    || 'N/A';
   const source     = normInfData?.source  || match.source || (isProduct ? 'Amazon' : 'Google Patents');
   const entryUrl   = normInfData?.url     || match.url   || null;
+  console.log('Derived entryUrl:', entryUrl);
   //const caseLabel  = caseId ? (caseId.split('_')[1] || caseId) : (patentNumber || 'N/A');
   const caseLabel = caseId
   ? (String(caseId).split('_').pop() || caseId)

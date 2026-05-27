@@ -762,7 +762,7 @@ const PatentDetailPage = () => {
   const dispatch  = useDispatch();
   const { logout } = useAuth();
   const [searchParams] = useSearchParams();
-  const [matchesExpanded, setMatchesExpanded] = useState(false); // collapsed by default
+  const [matchesExpanded, setMatchesExpanded] = useState(true); // collapsed by default
   const [claimsExpanded, setClaimsExpanded] = useState(false); // collapsed by default
 
   const caseIdFromUrl = searchParams.get('id');
@@ -836,7 +836,7 @@ const PatentDetailPage = () => {
                     Jul:'07', Aug:'08', Sep:'09', Oct:'10', Nov:'11', Dec:'12'
                   };
 
-                  const parseRFC2822 = (str) => {
+                 /* const parseRFC2822 = (str) => {
                     // "Sat, 23 May 2026 10:06:53 GMT"
                     const m = str.match(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/);
                     if (!m) return null;
@@ -848,13 +848,38 @@ const PatentDetailPage = () => {
 
                   const lastViewed  = p.last_viewed  ? new Date(p.last_viewed)  : null;
                   const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
-                  const lastUpdated = rawUpdated ? parseRFC2822(rawUpdated) : null;
+                  const lastUpdated = rawUpdated ? parseRFC2822(rawUpdated) : null;*/
+
+                  const parseAnyDate = (str) => {
+                  if (!str) return null;
+                  // Try RFC 2822: "Sun, 24 May 2026 17:22:54 GMT"
+                  const m = str.match(/^(\w+), (\d+) (\w+) (\d+) ([\d:]+) GMT$/);
+                  if (m) {
+                    const [, , day, mon, year, time] = m;
+                    const mm = MONTHS[mon];
+                    if (!mm) return null;
+                    return new Date(`${year}-${mm}-${day.padStart(2, '0')}T${time}Z`);
+                  }
+                  // Fallback: ISO or any other format new Date() can handle
+                  const d = new Date(str);
+                  return isNaN(d.getTime()) ? null : d;
+                };
+
+                const lastViewed  = p.last_viewed  ? parseAnyDate(p.last_viewed)  : null;
+                 const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
+                const lastUpdated = rawUpdated     ? parseAnyDate(rawUpdated)      : null;
 
                   const isValid = (d) => d instanceof Date && !isNaN(d);
+                  const analysisStatus = String(p.infringement_analysis_status || '').toLowerCase();
+                  const analysisCompleted = analysisStatus === 'completed';
 
-                  const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+                  const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
                     ? lastUpdated > lastViewed
                     : false;
+
+                /*  const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
+                    ? lastUpdated > lastViewed
+                    : false;*/
 
     return {
       id:             p._id,
@@ -972,8 +997,11 @@ const PatentDetailPage = () => {
       //const c = await loadCase();
       const c = await Promise.race([
         loadCase(),
-        new Promise((_, reject) =>
+       /* new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Loading timed out after 20s')), 20000)
+        )*/
+       new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Loading timed out after 5 minutes')), 5 * 60 * 1000)
         )
       ]);
 
@@ -1072,12 +1100,14 @@ useEffect(() => {
 
 console.log('📅 Tracking last_viewed for caseId:', caseId);
   const updateLastViewed = () => {
+    const timestamp = new Date().toISOString();
     patentApi.updateCase(caseId, {
-      last_viewed: new Date().toISOString(),
+      last_viewed: timestamp,
     })
     .then(res => {
-      console.log('✅ last_viewed updated successfully:', res);
-      console.log('📅 last_viewed set to:', timestamp);
+      //console.log('✅ last_viewed updated successfully:', res);
+      //console.log('📅 last_viewed set to:', timestamp);
+     // dispatch(updatePatent({ _id: caseId, last_viewed: timestamp }));
     })
     .catch(err => {
       console.warn('Failed to update last_viewed:', err.message);
@@ -1099,15 +1129,15 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
 
   // ── 3. Browser back button ───────────────────────────────────
   const handlePopState = () => updateLastViewed();
-  window.addEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handlePopState);
 
-  return () => {
-    // ── 4. React Router navigation (your Back button, Link, navigate) ──
-    updateLastViewed();
-    window.removeEventListener('beforeunload', handleBeforeUnload);
-    window.removeEventListener('popstate', handlePopState);
-  };
-}, [caseId, pageLoading]); // ← only re-runs if caseId changes
+    return () => {
+      // ── 4. React Router navigation (your Back button, Link, navigate) ──
+     // updateLastViewed();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [caseId, pageLoading]); // ← only re-runs if caseId changes
 
   const beginSimilarityAnalysis = async () => {
     const keywords = caseData?.keywords       || [];

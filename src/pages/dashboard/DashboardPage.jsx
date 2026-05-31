@@ -10,7 +10,8 @@ import StatCard from '../../components/dashboard/StatCard';
 import ProjectCard from '../../components/dashboard/ProjectCard';
 import ProjectModal from '../../components/dashboard/ProjectModal';
 import DashboardSidebar from '../../components/layout/DashboardSidebar';
-import NotificationBell from '../../components/dashboard/NotificationBell'; // ← NEW
+import NotificationBell from '../../components/dashboard/NotificationBell'; 
+import FetchBar from '../../components/dashboard/FetchBar';
 import { useUser } from '../../hooks/useUser';
 
 const getStatusShorthand = (status) => {
@@ -73,7 +74,7 @@ const calculatePatentOverlapScore = (infringements = []) => {
   return Math.round(avg * 100) / 100;
 };*/
 
-// REPLACE these three functions in DashboardPage.jsx
+
 
 const getClaimScore = (item) =>
   item?.calculated_similarity_score ?? item?.similarity_score ?? null;
@@ -133,6 +134,10 @@ export default function DashboardPage() {
   const { loadUserProfile } = useUser();
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  const [fetchingIds, setFetchingIds]     = useState([]);
+  const [initialFetchCount, setInitialFetchCount] = useState(0);
+  const [errorIds, setErrorIds] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -218,6 +223,43 @@ export default function DashboardPage() {
     return () => observer.disconnect();
   }, [loadMorePatents]);
 
+  useEffect(() => {
+        let cancelled = false;
+
+        const poll = async () => {
+          try {
+            const profile = await loadUserProfile();
+            if (cancelled) return;
+
+            // inside the poll function, replace the setFetchingIds calls:
+            const raw      = profile?.fetching_patents;
+            const rawError = profile?.error_patents;
+
+            const ids = raw
+              ? (Array.isArray(raw) ? raw : String(raw).split(',').map(s => s.trim()).filter(Boolean))
+              : [];
+
+            const errorIds = rawError
+              ? (Array.isArray(rawError) ? rawError : String(rawError).split(',').map(s => s.trim()).filter(Boolean))
+              : [];
+
+            setInitialFetchCount(prev => prev === 0 && ids.length > 0 ? ids.length : prev);
+            setFetchingIds(ids);
+            setErrorIds(errorIds); // ← new state
+          } catch (e) {
+            console.warn('fetching_id poll failed:', e);
+          }
+        };
+
+        poll(); // immediate first call
+        const interval = setInterval(poll, 3_000);
+
+        return () => {
+          cancelled = true;
+          clearInterval(interval);
+        };
+      }, []);
+
   // Toggle stat card filter: clicking the active card resets to 'all'
   const handleStatCardClick = (cardKey) => {
     //alert('cardKey: ' + cardKey + '\nstatusFilter: ' + statusFilter);
@@ -296,9 +338,13 @@ export default function DashboardPage() {
           const analysisStatus = String(p.infringement_analysis_status || '').toLowerCase();
           const analysisCompleted = analysisStatus === 'completed';
 
-          const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
+        /*  const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
             ? lastUpdated > lastViewed
-            : false;
+            : false;*/
+
+            const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
+                  ? (lastUpdated - lastViewed) > 2000  // only flag if > 2 seconds difference
+                  : false;
 
           
 
@@ -653,6 +699,16 @@ export default function DashboardPage() {
               )}
             </div>
           )}
+
+
+
+         <FetchBar
+            fetchingIds={fetchingIds}
+            errorIds={errorIds}
+            initialCount={initialFetchCount}
+          />
+                      
+
 
           {/* ── Patent Cards Grid ── */}
           {!ui.loading && filteredPatents.length > 0 && (

@@ -190,9 +190,9 @@ const ProjectCard = ({
         </svg>
         {patentNumber}
       </div>
-
-      <div className="pcard-progress">
-        {pct > 0 && (
+      {pct > 50 && (
+        <div className="pcard-progress">
+        
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{
               fontFamily: "'Inconsolata', monospace", fontSize: 9,
@@ -207,7 +207,7 @@ const ProjectCard = ({
               {pct}%
             </span>
           </div>
-        )}
+       
         <div className="prog-track">
           <div className={`prog-fill ${fillClass}`} style={{ width: `${pct}%` }} />
         </div>
@@ -217,7 +217,7 @@ const ProjectCard = ({
           ))}
         </div>
       </div>
-
+      )}
       <div className="pcard-foot">
         <div className="pcard-time">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

@@ -765,6 +765,8 @@ const PatentDetailPage = () => {
   const [matchesExpanded, setMatchesExpanded] = useState(true); // collapsed by default
   const [claimsExpanded, setClaimsExpanded] = useState(false); // collapsed by default
 
+  const [matchTypeFilter, setMatchTypeFilter] = useState('product'); // default: product
+
   const caseIdFromUrl = searchParams.get('id');
   const projectData   = location.state || {};
   const caseId        = caseIdFromUrl || projectData.id;
@@ -868,14 +870,20 @@ const PatentDetailPage = () => {
                 const lastViewed  = p.last_viewed  ? parseAnyDate(p.last_viewed)  : null;
                  const rawUpdated  = p.last_updated || p.updated_date || p.lastUpdated;
                 const lastUpdated = rawUpdated     ? parseAnyDate(rawUpdated)      : null;
+                 console.log(`⏰ Patent ${p._id}: last_viewed="${p.last_viewed}" →`, lastViewed, '; last_updated=', rawUpdated, '→', lastUpdated);
 
                   const isValid = (d) => d instanceof Date && !isNaN(d);
                   const analysisStatus = String(p.infringement_analysis_status || '').toLowerCase();
                   const analysisCompleted = analysisStatus === 'completed';
 
-                  const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
+                 /* const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
                     ? lastUpdated > lastViewed
-                    : false;
+                    : false;*/
+
+                    // Instead of strict greater-than:
+                const hasUpdates = analysisCompleted && isValid(lastUpdated) && isValid(lastViewed)
+                  ? (lastUpdated - lastViewed) > 2000  // only flag if > 2 seconds difference
+                  : false;
 
                 /*  const hasUpdates = isValid(lastUpdated) && isValid(lastViewed)
                     ? lastUpdated > lastViewed
@@ -945,6 +953,8 @@ const PatentDetailPage = () => {
     : [];
 
     console.log('🃏 All potential matches:', JSON.stringify(potentialMatches, null, 2));
+
+    const filteredMatches = potentialMatches.filter(m => m.type === matchTypeFilter);
 
 
     // always shows matches if they exist
@@ -1932,7 +1942,6 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
         {matchesCount} match{matchesCount !== 1 ? 'es' : ''}
       </span>
 
-      {/* ── Toggle button ── */}
       <button
         onClick={() => setMatchesExpanded(prev => !prev)}
         className="btn-export"
@@ -1954,10 +1963,53 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
     </div>
   </div>
 
+  {/* ── Filter tabs ── */}
+  {matchesExpanded && (
+    <div style={{
+      display: 'flex', gap: 6, marginBottom: 14,
+      borderBottom: '1px solid var(--rule2)', paddingBottom: 0,
+    }}>
+      {[
+        { key: 'product', label: '🛒 Products', count: potentialMatches.filter(m => m.type === 'product').length },
+        { key: 'patent',  label: '📄 Patents',  count: potentialMatches.filter(m => m.type === 'patent').length  },
+      ].map(tab => (
+        <button
+          key={tab.key}
+          onClick={() => setMatchTypeFilter(tab.key)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px',
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: "'Inconsolata', monospace", fontSize: 11, fontWeight: 600,
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            color: matchTypeFilter === tab.key ? 'var(--accent)' : 'var(--ink3)',
+            borderBottom: matchTypeFilter === tab.key
+              ? '2px solid var(--accent)'
+              : '2px solid transparent',
+            marginBottom: -1, // sits flush on the border
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
+        >
+          {tab.label}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            minWidth: 18, height: 18, borderRadius: 99,
+            background: matchTypeFilter === tab.key ? 'var(--acc-soft)' : 'var(--surf2)',
+            color: matchTypeFilter === tab.key ? 'var(--accent)' : 'var(--ink3)',
+            fontSize: 10, fontWeight: 700, padding: '0 5px',
+            transition: 'background 0.15s, color 0.15s',
+          }}>
+            {tab.count}
+          </span>
+        </button>
+      ))}
+    </div>
+  )}
+
   {/* ── Collapsible content ── */}
   {matchesExpanded && (
     <>
-      {/* ── CASE 1: user clicked Run Analysis ── */}
+      {/* CASE 1: user clicked Run Analysis */}
       {analysisLoading && (
         <div className="pd-card-body" style={{ textAlign: 'center', padding: '40px 24px', marginBottom: 16 }}>
           <div style={{ width: 36, height: 36, border: '3px solid var(--rule2)', borderTop: '3px solid var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
@@ -1967,15 +2019,14 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
         </div>
       )}
 
-      {/* ── CASE 2: analysis is in-flight on the backend ── */}
+      {/* CASE 2: analysis in-flight on backend */}
       {!analysisLoading && iaIsInFlight && (
         <div className="pd-card-body" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '24px', marginBottom: 16 }}>
           <div style={{
             width: 32, height: 32, flexShrink: 0,
             border: '3px solid var(--rule2)',
             borderTop: '3px solid var(--amber, #b45309)',
-            borderRadius: '50%',
-            animation: 'spin 1.2s linear infinite',
+            borderRadius: '50%', animation: 'spin 1.2s linear infinite',
           }} />
           <div>
             <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', margin: '0 0 3px' }}>
@@ -2011,21 +2062,29 @@ console.log('📅 Tracking last_viewed for caseId:', caseId);
         </div>
       )}
 
-      {/* ── CASE 3: no matches, not loading ── */}
-      {shouldShowEmpty && !iaIsInFlight && (
+      {/* CASE 3: no matches for this filter tab */}
+      {!analysisLoading && !iaIsInFlight && filteredMatches.length === 0 && (
         <div className="pd-card-body pd-no-matches">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 20 }}>✅</span>
-            <p style={{ fontSize: 13.5, color: 'var(--ink2)', margin: 0 }}>No potential infringement matches found.</p>
+            <span style={{ fontSize: 20 }}>
+              {potentialMatches.length > 0 ? '🔍' : '✅'}
+            </span>
+            <p style={{ fontSize: 13.5, color: 'var(--ink2)', margin: 0 }}>
+              {potentialMatches.length > 0
+                ? `No ${matchTypeFilter} matches found. Try the other tab.`
+                : 'No potential infringement matches found.'}
+            </p>
           </div>
-          <button className="btn-new" onClick={beginSimilarityAnalysis}>Start Analysis</button>
+          {potentialMatches.length === 0 && (
+            <button className="btn-new" onClick={beginSimilarityAnalysis}>Start Analysis</button>
+          )}
         </div>
       )}
 
-      {/* ── CASE 4: show matches ── */}
-      {shouldShowMatches && (
+      {/* CASE 4: show filtered matches */}
+      {filteredMatches.length > 0 && (
         <div className="cards-grid">
-          {potentialMatches.map((match, index) => (
+          {filteredMatches.map((match, index) => (
             <MatchCard
               key={index}
               match={match}

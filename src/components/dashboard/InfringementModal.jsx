@@ -669,7 +669,8 @@ const InfringementModal = ({
                 </div>
               )}
 
-              {/* Overlap score bar */}
+              {/* Overlap score bar — only shown when score > 50 */}
+              {scoreNum > 50 && (
               <div style={{
                 background:'var(--surf)', borderRadius:12,
                 border:'1px solid var(--rule)',
@@ -683,7 +684,7 @@ const InfringementModal = ({
                   <div style={{ height:'100%', width:`${scoreNum}%`, background:riskColor, borderRadius:3, transition:'width 0.7s cubic-bezier(0.22,1,0.36,1)' }} />
                 </div>
               </div>
-
+            )}
               {/* Visit source button */}
               <div style={{ marginBottom:26 }}>
                 <button

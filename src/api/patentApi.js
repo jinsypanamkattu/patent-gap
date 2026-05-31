@@ -255,6 +255,22 @@ export const patentApi = {
   }
 },*/
 
+
+
+batchUploadFile: async (formData) => {
+  try {
+    const { data } = await axiosInstance.post(
+      '/bulk-fetch',           // receives one file per request
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data;
+  } catch (error) {
+    console.warn('Batch file upload failed:', error.message);
+    throw error;
+  }
+},
+
   triggerSimilarityAnalysis: async (caseId, keywords) => {
     try {
       const { data } = await axiosInstance.post('/trigger-similarity-analysis', {
